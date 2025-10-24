@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trellis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- New Serif Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #121212;
+            --tile-bg: #282828;
+            --letter-bg: #404040;
+            --text-color: #E0E0E0;
+            --border-color: #555;
+            --hint-correct: #4CAF50;
+            --hint-present: #E6B400;
+            --hint-incorrect: #A12C2C; /* Made this red less bright */
+            --selection-color: #2979FF;
+            --tile-size: clamp(35px, 6vmin, 50px);
+            --gap: 4px;
+        }
+        /* Light Mode Theme */
+        body.light-mode {
+            --bg-color: #F0F0F0;
+            --tile-bg: #DCDCDC;
+            --letter-bg: #FFFFFF;
+            --text-color: #121212;
+            --border-color: #AAAAAA;
+            /* Light mode hints */
+            --hint-correct: #4CAF50;
+            --hint-present: #E6B400;
+            --hint-incorrect: #D32F2F; /* Darker red for light mode */
+        }
+        body {
+            /* Changed Font */
+            font-family: 'Lora', serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1rem;
+            position: relative;
+            max-width: 95vw;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            /* Changed to solid color */
+            color: var(--selection-color);
+        }
+        .header-controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+        }
+        .check-lights { display: flex; gap: 6px; }
+        .check-light {
+            width: 25px; height: 10px; border-radius: 5px;
+            background-color: var(--hint-correct);
+        }
+        .check-light.used { background-color: var(--hint-incorrect); }
+        
+        /* Icon Buttons */
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+            opacity: 0.7;
+            transition: opacity 0.2s, color 0.2s; /* Added color transition */
+        }
+        .icon-btn:hover { 
+            opacity: 1;
+            color: var(--selection-color); /* Hover blue */
+        }
+        .icon-btn svg {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Standard Buttons */
+        #check-btn, #replay-btn, #reset-btn { 
+            background-color: var(--hint-correct); /* New rest state: green */
+            color: #FFFFFF; /* White text for contrast */
+            border: 1px solid var(--hint-correct);
+            padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            font-family: 'Inter', sans-serif; /* Keep buttons sans-serif for readability */
+            font-weight: 700;
+        }
+        /* Special Buttons */
+        #share-btn, #play-btn {
+            background-color: var(--selection-color); /* Rest state: blue */
+            color: #FFFFFF;
+            border: 1px solid var(--selection-color);
+            padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+        }
+        
+        /* Hover States */
+        #check-btn:hover, #replay-btn:hover, #reset-btn:hover { 
+            background-color: var(--selection-color); /* Hover state: blue */
+            border-color: var(--selection-color);
+        }
+         #share-btn:hover, #play-btn:hover {
+            background-color: var(--hint-correct); /* Hover state: green */
+            border-color: var(--hint-correct);
+        }
+
+        #check-btn:disabled { 
+            background-color: #282828; 
+            border-color: #282828;
+            color: #555;
+            cursor: not-allowed; 
+            opacity: 0.7; 
+        }
+        
+        .main-area {
+            display: flex;
+            flex-direction: column; /* Stack grid and tray */
+            align-items: center;
+            gap: 1.5rem;
+            width: 100%;
+        }
+        .puzzle-grid { display: flex; flex-direction: column; gap: var(--gap); }
+        .grid-row {
+            display: grid;
+            grid-template-columns: repeat(7, var(--tile-size)); /* 7 Columns */
+            gap: var(--gap);
+        }
+        .grid-tile, .tray-tile, .placeholder-tile {
+            width: var(--tile-size); height: var(--tile-size);
+            display: flex; justify-content: center; align-items: center;
+            border-radius: 6px;
+        }
+        .grid-tile { background-color: var(--tile-bg); border: 1px solid var(--border-color); }
+        .placeholder-tile { background-color: transparent; border: none; }
+        .grid-tile.stem-letter {
+            transition: background-color 0.5s, border-color 0.5s;
+            border: 1px solid var(--selection-color);
+        }
+        /* --- MODIFIED: Color letter tile on win --- */
+        .grid-tile.stem-win, .grid-tile.stem-win .letter-tile { 
+            background-color: var(--selection-color); 
+            color: #FFF; /* Ensure white text */
+            border-color: var(--selection-color); /* Ensure border matches */
+        }
+        .letter-tile {
+            width: 90%; height: 90%; background-color: var(--letter-bg);
+            border-radius: 4px; font-size: calc(var(--tile-size) * 0.5); font-weight: 700;
+            cursor: pointer; user-select: none;
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s; /* Added bg color transition */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .letter-tile.selected {
+            box-shadow: 0 0 0 3px var(--selection-color);
+            transform: scale(1.05);
+        }
+        .letter-tile.locked { cursor: not-allowed; }
+        
+        /* --- NEW: Full Tile Hint Styles --- */
+        .grid-tile.hint-correct .letter-tile, .letter-tile.locked { 
+            background-color: var(--hint-correct);
+            color: #FFFFFF;
+        }
+        .grid-tile.hint-present .letter-tile { 
+            background-color: var(--hint-present);
+            color: #FFFFFF;
+        }
+        .grid-tile.hint-incorrect .letter-tile { 
+            background-color: var(--hint-incorrect);
+            color: #FFFFFF;
+        }
+        /* Remove border-only hints */
+        .grid-tile.hint-correct { border-color: var(--border-color); }
+        .grid-tile.hint-present { border-color: var(--border-color); }
+        .grid-tile.hint-incorrect { border-color: var(--border-color); }
+        body.light-mode .grid-tile.stem-letter {
+            border: 1px solid var(--selection-color); /* Keep blue border for light mode stem */
+        }
+        
+        .letter-tray {
+            display: flex;
+            flex-direction: column; /* Stack rows */
+            gap: var(--gap);
+            background-color: #1f1f1f;
+            padding: var(--gap);
+            border-radius: 8px;
+            width: auto;
+        }
+        body.light-mode .letter-tray {
+             background-color: #CFCFCF; 
+        }
+        .tray-row {
+            display: grid;
+            gap: var(--gap);
+        }
+        .tray-tile {
+             background-color: transparent;
+             border: none;
+             padding: 0;
+             width: var(--tile-size); 
+             height: var(--tile-size);
+        }
+        #move-counter {
+            background-color: var(--hint-incorrect); /* Red tile */
+            border: 1px solid var(--hint-incorrect); 
+            color: #FFFFFF; /* White font */
+            font-size: calc(var(--tile-size) * 0.4);
+            font-weight: 700;
+            font-family: 'Lora', serif; /* Use Lora serif font */
+        }
+        
+        #message-area { font-size: 1.2rem; height: 1.5rem; color: var(--hint-correct); font-weight: bold; text-align: center; }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        body.light-mode .modal-overlay {
+            background: rgba(255,255,255,0.7);
+        }
+        .modal-overlay.visible {
+            display: flex;
+            opacity: 1;
+        }
+        .modal-box {
+            background-color: var(--tile-bg);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+            z-index: 1000;
+            width: 85%;
+            max-width: 450px;
+            position: relative;
+            transform: scale(0.95);
+            transition: transform 0.3s;
+        }
+        .modal-overlay.visible .modal-box {
+            transform: scale(1);
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            opacity: 0.7;
+        }
+        .modal-close-btn:hover { opacity: 1; }
+        .modal-close-btn svg { width: 24px; height: 24px; }
+        
+        #stats-modal h2 { margin-top: 0; color: var(--hint-correct); font-size: 1.8rem;}
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin: 1.5rem 0; }
+        .stat-item h3 { margin: 0; font-size: 1.5rem; font-family: 'Inter', sans-serif; } 
+        .stat-item p { margin: 0; color: #aaa; font-size: 0.8rem;}
+        .stat-item.total-score h3 {
+            color: var(--hint-present);
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+        .modal-buttons { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;}
+        
+        /* How to Play Styles */
+        #help-modal { text-align: left; }
+        #help-modal h2 { text-align: center; margin-top: 0; }
+        #help-modal p { font-size: 0.9rem; color: var(--text-color); }
+        .example-row { display: flex; gap: 4px; margin: 0.5rem 0; }
+        .example-tile {
+            width: 35px; height: 35px;
+            display: flex; justify-content: center; align-items: center;
+            font-weight: 700; font-size: 1rem;
+            border-radius: 4px;
+            color: #FFFFFF; /* All examples use white text for contrast */
+            font-family: 'Inter', sans-serif; 
+        }
+        .example-tile.stem {
+             border: 1px solid var(--selection-color);
+             width: 33px; height: 33px; 
+             background-color: var(--tile-bg);
+             color: var(--text-color); /* Match theme text color */
+        }
+         /* --- NEW: Full tile color examples --- */
+        .example-tile.correct { background-color: var(--hint-correct); }
+        .example-tile.present { background-color: var(--hint-present); }
+        .example-tile.incorrect { background-color: var(--hint-incorrect); }
+        
+        /* Settings Modal Styles */
+        #settings-modal h2 { text-align: center; margin-top: 0; }
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .setting-row:last-child { border-bottom: none; }
+        .setting-row p { margin: 0; font-size: 1rem; }
+        .toggle-switch {
+            position: relative; display: inline-block;
+            width: 50px; height: 28px;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s; border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background-color: white; transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--selection-color); }
+        input:checked + .slider:before { transform: translateX(22px); }
+        
+        /* Start Screen */
+        #start-screen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--bg-color);
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem; /* Reduced gap */
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+        .start-logo {
+            width: 100px;
+            height: 100px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 5px;
+        }
+        .logo-tile {
+            border-radius: 4px;
+        }
+        .logo-stem { background-color: var(--selection-color); }
+        .logo-leaf { background-color: var(--hint-correct); }
+        .logo-leaf-alt { background-color: var(--hint-present); }
+
+        #start-screen h1 { font-size: 3.5rem; }
+        /* Tagline Style */
+        #tagline {
+            font-family: 'Lora', serif; /* Use Lora serif font */
+            font-size: 1rem;
+            font-style: normal; /* Removed italic */
+            color: #aaa;
+            margin: -1rem 0 0 0;
+            max-width: 90%;
+            text-align: center;
+        }
+        body.light-mode #tagline {
+            color: #555; /* Darker tagline for light mode */
+        }
+        
+        /* --- CONDENSED SOLUTION BOX --- */
+        #solution-display {
+            margin-top: 1rem; 
+            padding: 0.5rem 1rem; /* Condensed padding */
+            background-color: var(--tile-bg);
+            border-radius: 8px; 
+            display: none; 
+            font-family: monospace;
+            white-space: pre-line; /* Allows wrapping */
+            text-align: left; 
+            border: 1px solid var(--border-color);
+            font-size: 0.8rem; /* Smaller font */
+            line-height: 1.3; /* Tighter line height */
+            max-height: none; /* Remove fixed height */
+        }
+        #solution-display h3 { 
+            margin-top: 0.25rem; /* Tighter margin */
+            margin-bottom: 0.25rem; /* Tighter margin */
+            color: var(--hint-present); 
+            text-align: center; 
+        }
+    </style>
+</head>
+<body>
+
+    <!-- START SCREEN -->
+    <div id="start-screen">
+        <div class="start-logo">
+            <div class="logo-tile"></div>
+            <div class="logo-tile logo-stem"></div>
+            <div class="logo-tile logo-leaf"></div>
+            <div class="logo-tile logo-leaf-alt"></div>
+            <div class="logo-tile logo-stem"></div>
+            <div class="logo-tile"></div>
+            <div class="logo-tile"></div>
+            <div class="logo-tile logo-stem"></div>
+            <div class="logo-tile logo-leaf"></div>
+        </div>
+        <h1>Trellis</h1>
+        <p id="tagline"></p> <!-- Tagline added here -->
+        <button id="play-btn">Play</button>
+    </div>
+
+    <div class="game-container">
+        <div class="header-controls">
+            <button class="icon-btn" id="help-btn" aria-label="How to play">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </button>
+            <div class="check-lights" id="check-lights"></div>
+            <button id="check-btn">Check</button>
+            <button id="reset-btn">Restart Level</button> <!-- Text restored -->
+            <button class="icon-btn" id="settings-btn" aria-label="Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+        </div>
+        <div class="main-area">
+            <div class="puzzle-grid" id="puzzle-grid"></div>
+            <div class="letter-tray" id="letter-tray"></div>
+        </div>
+        <div id="message-area"></div>
+
+        <div id="stats-modal-overlay" class="modal-overlay">
+            <div id="stats-modal" class="modal-box">
+                 <button class="icon-btn modal-close-btn" id="close-stats-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+                <h2 id="modal-title">Puzzle Solved!</h2>
+                <div class="stats-grid">
+                    <div class="stat-item"><h3 id="final-time">--:--</h3><p>Time</p></div>
+                    <div class="stat-item"><h3 id="final-moves">--</h3><p>Moves</p></div>
+                    <div class="stat-item"><h3 id="move-bonus">0</h3><p>Move Bonus</p></div>
+                    <div class="stat-item"><h3 id="first-try-bonus">0</h3><p>First Try Bonus</p></div>
+                    <div class="stat-item"><h3 id="check-bonus">0</h3><p>Checks Remaining Bonus</p></div>
+                    <div class="stat-item total-score">
+                        <h3 id="final-score">0</h3>
+                        <p>Total Score</p>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button id="replay-btn">Play Again</button>
+                    <button id="share-btn">Share</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- How to Play Modal -->
+        <div id="help-modal-overlay" class="modal-overlay">
+            <div id="help-modal" class="modal-box">
+                <button class="icon-btn modal-close-btn" id="close-help-btn">
+                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+                <h2>How To Play</h2>
+                <p>Use the letters from the tray to complete the words on the trellis.</p>
+                <p>The central letters are part of the word. The word can be 4 letters long, and the stem letter can be in any position.</p>
+                <div class="example-row">
+                    <div class="example-tile correct">W</div>
+                    <div class="example-tile stem">A</div>
+                    <div class="example-tile correct">L</div>
+                    <div class="example-tile correct">L</div>
+                </div>
+                <p><b>Green:</b> Correct letter in the correct spot.</p>
+                <div class="example-row">
+                    <div class="example-tile present">L</div>
+                    <div class="example-tile stem">O</div>
+                    <div class="example-tile incorrect">S</div>
+                    <div class="example-tile present">T</div>
+                </div>
+                <p><b>Orange:</b> Correct letter in the wrong spot.</p>
+                <div class="example-row">
+                    <div class="example-tile incorrect">B</div>
+                    <div class="example-tile stem">R</div>
+                    <div class="example-tile incorrect">I</div>
+                    <div class="example-tile incorrect">G</div>
+                </div>
+                <p><b>Red:</b> Letter is not in the word.</p>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal-overlay" class="modal-overlay">
+             <div id="settings-modal" class="modal-box">
+                 <button class="icon-btn modal-close-btn" id="close-settings-btn">
+                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                 </button>
+                <h2>Settings</h2>
+                <div class="setting-row">
+                    <p>Dark Mode</p>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="theme-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solution display area -->
+        <div id="solution-display">
+             <h3>Solution:</h3>
+             <div id="solution-text"></div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- 4-LETTER WORD DICTIONARY ---
+        const ALL_WORDS = ["ABLE", "ACID", "AGED", "ALSO", "AREA", "ARMY", "AWAY", "BABY", "BACK", "BALL", "BAND", "BANK", "BASE", "BATH", "BEAR", "BEAT", "BEEN", "BELL", "BELT", "BEST", "BILL", "BIRD", "BLOW", "BLUE", "BOAT", "BODY", "BOMB", "BOND", "BONE", "BOOK", "BOOM", "BORN", "BOSS", "BOTH", "BOWL", "BULK", "BURN", "BUSH", "BUSY", "CAGE", "CAKE", "CALL", "CALM", "CAME", "CAMP", "CARD", "CARE", "CASE", "CASH", "CAST", "CELL", "CENT", "CHAT", "CHIP", "CITY", "CLUB", "COAL", "COAT", "CODE", "COLD", "COME", "COOK", "COOL", "COPY", "CORD", "CORE", "CORN", "COST", "CREW", "CROP", "DARK", "DATA", "DATE", "DAWN", "DAYS", "DEAD", "DEAL", "DEAR", "DEBT", "DECK", "DEEP", "DEER", "DESK", "DIAL", "DICE", "DIET", "DIRT", "DISK", "DOES", "DONE", "DOOR", "DOSE", "DOWN", "DRAW", "DREW", "DROP", "DRUG", "DRUM", "DUCK", "DUEL", "DUKE", "DUST", "DUTY", "EACH", "EARL", "EARN", "EASE", "EAST", "EASY", "EDGE", "ELSE", "EVEN", "EVER", "EVIL", "EXIT", "FACE", "FACT", "FAIL", "FAIR", "FALL", "FARM", "FAST", "FATE", "FEAR", "FEED", "FEEL", "FEET", "FELL", "FELT", "FILE", "FILL", "FILM", "FIND", "FINE", "FIRE", "FIRM", "FISH", "FIVE", "FLAG", "FLAT", "FLOW", "FOOD", "FOOT", "FORD", "FORM", "FORT", "FOUR", "FREE", "FROM", "FUEL", "FULL", "FUND", "GAIN", "GAME", "GANG", "GATE", "GAVE", "GEAR", "GENE", "GIFT", "GIRL", "GIVE", "GLAD", "GOAL", "GOES", "GOLD", "GONE", "GOOD", "GRAY", "GREW", "GROW", "GULF", "HAIR", "HALF", "HALL", "HAND", "HANG", "HARD", "HARM", "HATE", "HAVE", "HEAD", "HEAR", "HEAT", "HELD", "HELL", "HELP", "HERE", "HERO", "HIGH", "HILL", "HIRE", "HOLD", "HOLE", "HOLY", "HOME", "HOPE", "HOUR", "HUGE", "HUNG", "HUNT", "HURT", "IDEA", "IDLE", "INCH", "INTO", "IRON", "ITEM", "JOIN", "JOKE", "JUMP", "JUST", "KEEN", "KEEP", "KEPT", "KICK", "KILL", "KIND", "KING", "KNEE", "KNEW", "KNOW", "LACK", "LADY", "LAID", "LAKE", "LAMB", "LAMP", "LAND", "LANE", "LAST", "LATE", "LAZY", "LEAD", "LEAF", "LEFT", "LEND", "LENT", "LESS", "LIFE", "LIFT", "LIKE", "LINE", "LINK", "LIST", "LIVE", "LOAD", "LOAN", "LOCK", "LONG", "LOOK", "LORD", "LOSE", "LOSS", "LOST", "LOUD", "LOVE", "LOW", "LUCK", "LUNG", "MADE", "MAIL", "MAIN", "MAKE", "MALE", "MANY", "MARK", "MASS", "MEAL", "MEAN", "MEAT", "MEET", "MENU", "MILE", "MILK", "MILL", "MIND", "MINE", "MISS", "MODE", "MOOD", "MOON", "MORE", "MOST", "MOVE", "MUCH", "MUST", "NAME", "NAVY", "NEAR", "NECK", "NEED", "NEWS", "NEXT", "NICE", "NINE", "NONE", "NOON", "NORM", "NOSE", "NOTE", "NOUN", "ONCE", "ONLY", "ONTO", "OPEN", "ORAL", "OVER", "PACE", "PACK", "PAGE", "PAID", "PAIN", "PAIR", "PALM", "PARK", "PART", "PASS", "PAST", "PATH", "PAY", "PEAK", "PICK", "PILE", "PINK", "PIPE", "PLAN", "PLAY", "PLOT", "PLUG", "PLUS", "POEM", "POET", "POLE", "POLL", "POOL", "POOR", "PORT", "POST", "PULL", "PURE", "PUSH", "RACE", "RAIL", "RAIN", "RANK", "RARE", "RATE", "READ", "REAL", "REAR", "RELY", "RENT", "REST", "RICE", "RICH", "RIDE", "RING", "RISE", "RISK", "ROAD", "ROCK", "ROLE", "ROLL", "ROOF", "ROOM", "ROOT", "ROPE", "ROSE", "ROUGH", "ROUND", "ROW", "RULE", "RUSH", "SAFE", "SAGE", "SAID", "SAIL", "SALE", "SALT", "SAME", "SAND", "SAVE", "SAY", "SEAT", "SEED", "SEEK", "SEEM", "SEEN", "SELF", "SELL", "SEND", "SENT", "SHIP", "SHOE", "SHOP", "SHOT", "SHOW", "SICK", "SIDE", "SIGN", "SILK", "SING", "SIT", "SITE", "SIZE", "SKIN", "SLIP", "SLOW", "SNOW", "SOFT", "SOIL", "SOLD", "SOLE", "SOME", "SONG", "SOON", "SORT", "SOUL", "SPOT", "STAR", "STAY", "STEP", "STOP", "SUCH", "SUIT", "SUM", "SUN", "SURE", "TAKE", "TALE", "TALK", "TALL", "TANK", "TAPE", "TASK", "TEAM", "TEAR", "TELL", "TEND", "TENT", "TERM", "TEST", "TEXT", "THAN", "THAT", "THEM", "THEN", "THIN", "THIS", "THUS", "TIDE", "TIDY", "TIE", "TILE", "TIME", "TINY", "TIRE", "TOE", "TONE", "TOOK", "TOOL", "TOUR", "TOWN", "TRAP", "TREE", "TRIP", "TRUE", "TUNE", "TURN", "TWIN", "TYPE", "UNIT", "UPON", "USED", "USER", "VAST", "VERY", "VIEW", "VOTE", "WAGE", "WAIT", "WAKE", "WALK", "WALL", "WANT", "WARM", "WARN", "WASH", "WAVE", "WEAK", "WEAR", "WEEK", "WELL", "WENT", "WERE", "WEST", "WHAT", "WHEN", "WHIP", "WIDE", "WIFE", "WILD", "WILL", "WIND", "WINE", "WING", "WIRE", "WISE", "WISH", "WITH", "WOOD", "WOOL", "WORD", "WORK", "YARD", "YEAR", "YOUR", "ZERO", "ZONE"];
+        
+        // --- 5-LETTER STEM WORDS ---
+        const STEM_WORDS = ["AUDIO", "BRAVE", "CHAIR", "DREAM", "EARTH", "FLUID", "GRAPE", "HOUSE", "INPUT", "JOKER", "KNOWN", "LIGHT", "MUSIC", "NORTH", "OCEAN", "PRICE", "QUERY", "RIGHT", "SOUND", "THING", "PLUCK", "TRACE", "SWING"]; 
+        
+        // --- NEW TAGLINE LIST ---
+        const TAGLINES = [
+            "'I am' is the shortest complete sentence.",
+            "The dot over the 'i' is called a tittle.",
+            "'Bookkeeper' has three consecutive double letters.",
+            "A new word is added to the dictionary every two hours.",
+            "The most common letter is 'E'.",
+            "The least common letter is 'Z'.",
+            "'Stewardesses' is the longest word typed with only the left hand.",
+            "'Dreamt' is the only word that ends in 'mt'.",
+            "A pangram contains every letter of the alphabet.",
+            "'Almost' is the longest word with letters in alphabetical order.",
+            "The oldest English word is 'town'.",
+            "'Queue' sounds the same even if you remove the last four letters.",
+            "'Four' is the only number whose letters are in alphabetical order.",
+            "'One' is the only one in reverse alphabetical order.",
+            "A word with no vowels is a 'glyph'.",
+            "'Uncopyrightable' is a long word with no repeating letters.",
+            "A 'contronym' is a word with two opposite meanings (e.g. 'cleave').",
+            "'Underground' begins and ends with 'und'.",
+            "The longest one-syllable word is 'screeched'.",
+            "'Rhythm' is the longest word without a, e, i, o, or u.",
+            "A 'palindrome' reads the same forwards and backwards.",
+            "Shakespeare invented over 1,700 words.",
+            "'Goddessship' is the only word with a triple letter.",
+            "The 'Q' in 'QWERTY' is almost always followed by a 'U'.",
+            "'Abstemious' contains all five vowels in order.",
+            "A 'portmanteau' blends two words (e.g. 'smog').",
+            "'Subbookkeeper' has four pairs of double letters.",
+            "The longest word in English has 45 letters.",
+            "What seven-letter word has three 'U's? 'Triumphs'?",
+            "No, the seven-letter word with three 'U's is 'unusual'.",
+            "A 'ghost word' is a word that appeared in a dictionary by error.",
+            "'Therein' contains seven words without rearranging letters.",
+            "'Indivisibility' has only one vowel, repeated six times.",
+            "The word 'set' has the most definitions.",
+            "'Go' is the shortest complete sentence.",
+            "There are words that only exist in plural form, like 'scissors'.",
+            "'Listen' and 'silent' use the same letters.",
+            "The sixth sick sheik's sixth sheep's sick.",
+            "The past tense of 'yeet' is 'yote'. Maybe.",
+            "To 'plenish' is the opposite of 'replenish'.",
+            "A 'jiffy' is an actual unit of time (1/100th of a second).",
+            "'Month', 'orange', 'silver', 'purple'... do not rhyme.",
+            "'Spoonfeed' is the longest word with letters in reverse alphabetical order.",
+            "The shortest '-ology' (study of) is 'oology' (study of eggs).",
+            "'Iouea' is a sea sponge and has all 5 vowels.",
+            "A 'Trellis' is a framework for supporting plants.",
+            "We think 'Trellis' is a better name than 'WordGrid'.",
+            "What's another word for 'Thesaurus'?",
+            "A 'crwth' is a Welsh instrument without vowels.",
+            "'Book' and 'read' are four-letter words."
+        ];
+        
+        let PUZZLE;
+
+        // Stats
+        let startTime;
+        let moveCount;
+        let firstTryBonus;
+        let firstCheckUsed;
+        const CHECKS_AVAILABLE = 4; // Set checks to 4
+
+        // --- DYNAMIC PUZZLE GENERATION (5-letter stem, 4-letter words) ---
+        function generatePuzzle() {
+             let isValidPuzzle = false;
+             let generatedPuzzle;
+             let attempts = 0;
+             const stemLength = 5; 
+
+             while (!isValidPuzzle && attempts < 2000) { 
+                 attempts++;
+                 const stem = STEM_WORDS[Math.floor(Math.random() * STEM_WORDS.length)];
+                 if (new Set(stem).size !== stem.length) continue; 
+
+                 const solution = [];
+                 let possible = true;
+                 let usedPatterns = {};
+
+                 for (const stemLetter of stem) {
+                     let possibleWords = ALL_WORDS.filter(word => word.length === 4 && word.includes(stemLetter));
+                     if (possibleWords.length === 0) { possible = false; break; }
+
+                     if (usedPatterns[stemLetter]) {
+                          possibleWords = possibleWords.filter(word => !usedPatterns[stemLetter].includes(word.indexOf(stemLetter)));
+                     }
+                     if (possibleWords.length === 0) { possible = false; break; }
+
+                     const word = possibleWords[Math.floor(Math.random() * possibleWords.length)];
+                     const stemIndex = word.indexOf(stemLetter);
+                     if (!usedPatterns[stemLetter]) usedPatterns[stemLetter] = [];
+                     usedPatterns[stemLetter].push(stemIndex);
+                     solution.push({ word, stemIndex });
+                 }
+
+                 if (!possible) continue;
+
+                 // Check letter economy (5 stems * 3 letters = 15 tray letters)
+                 let requiredTrayLetters = [];
+                  solution.forEach(sol => {
+                      for(let i = 0; i < sol.word.length; i++) {
+                         if (i !== sol.stemIndex) requiredTrayLetters.push(sol.word[i]);
+                     }
+                  });
+
+                 let requiredCounts = {};
+                 requiredTrayLetters.forEach(l => requiredCounts[l] = (requiredCounts[l] || 0) + 1);
+
+                 let actualTrayLetters = requiredTrayLetters.join('');
+                 let actualTrayCounts = {};
+                  actualTrayLetters.split('').forEach(l => actualTrayCounts[l] = (actualTrayCounts[l] || 0) + 1);
+
+                 let countsMatch = true;
+                 for (const letter in requiredCounts) {
+                     if (!actualTrayCounts[letter] || actualTrayCounts[letter] !== requiredCounts[letter]) {
+                         countsMatch = false; break;
+                     }
+                 }
+                 for (const letter in actualTrayCounts) {
+                      if (!requiredCounts[letter]) { countsMatch = false; break; }
+                 }
+
+                 // Check correct tray length (15 for 5-letter stem)
+                 if (countsMatch && actualTrayLetters.length === stemLength * 3) {
+                     isValidPuzzle = true;
+                     generatedPuzzle = { stem, solution, trayLetters: actualTrayLetters };
+                     console.log(`Generated Daily Puzzle (Stem: ${stemLength}):`, generatedPuzzle);
+                 } else if (attempts % 100 === 0) {
+                      console.warn(`Attempt ${attempts}: Economy check/length failed (${actualTrayLetters.length}). Stem: ${stem}`);
+                 }
+             } // End while loop
+
+             if (!isValidPuzzle) {
+                  console.error(`CRITICAL FAILURE: Could not generate valid puzzle after 2000 attempts.`);
+                  // Fallback to a known-good 5-stem puzzle
+                  return {
+                    stem: "AUDIO",
+                    solution: [
+                        { word: "ROAD", stemIndex: 2 }, { word: "DUCK", stemIndex: 1 }, { word: "DISK", stemIndex: 0 },
+                        { word: "IRON", stemIndex: 1 }, { word: "FOOD", stemIndex: 1 }
+                    ],
+                    trayLetters: "RADUCKDSKIRNFOD"
+                  };
+             }
+             return generatedPuzzle;
+         }
+
+
+        const elements = {
+            grid: document.getElementById('puzzle-grid'),
+            tray: document.getElementById('letter-tray'),
+            checkBtn: document.getElementById('check-btn'),
+            resetBtn: document.getElementById('reset-btn'), // Added back resetBtn
+            lights: document.getElementById('check-lights'),
+            message: document.getElementById('message-area'),
+            modal: document.getElementById('stats-modal'),
+            modalOverlay: document.getElementById('stats-modal-overlay'),
+            replayBtn: document.getElementById('replay-btn'),
+            shareBtn: document.getElementById('share-btn'),
+            solutionDisplay: document.getElementById('solution-display'),
+            solutionTextEl: document.getElementById('solution-text'),
+            modalTitle: document.getElementById('modal-title'),
+            // Stats elements
+            finalTimeEl: document.getElementById('final-time'),
+            finalMovesEl: document.getElementById('final-moves'),
+            moveBonusEl: document.getElementById('move-bonus'), 
+            firstTryBonusEl: document.getElementById('first-try-bonus'),
+            checkBonusEl: document.getElementById('check-bonus'),
+            finalScoreEl: document.getElementById('final-score'),
+            // New elements
+            startScreen: document.getElementById('start-screen'),
+            playBtn: document.getElementById('play-btn'),
+            helpBtn: document.getElementById('help-btn'),
+            settingsBtn: document.getElementById('settings-btn'),
+            helpModalOverlay: document.getElementById('help-modal-overlay'),
+            settingsModalOverlay: document.getElementById('settings-modal-overlay'),
+            closeHelpBtn: document.getElementById('close-help-btn'),
+            closeSettingsBtn: document.getElementById('close-settings-btn'),
+            closeStatsBtn: document.getElementById('close-stats-btn'),
+            themeToggle: document.getElementById('theme-toggle'),
+            tagline: document.getElementById('tagline') // Tagline element
+        };
+
+        let state = {};
+
+        function initGame() {
+            try {
+                PUZZLE = generatePuzzle();
+                 if (!PUZZLE) throw new Error("Puzzle generation returned null/undefined.");
+            } catch (error) {
+                 console.error("Error during init/puzzle generation:", error);
+                 elements.message.textContent = "Failed to load puzzle. Refresh.";
+                 elements.checkBtn.disabled = true;
+                 return;
+            }
+
+            state = {
+                selectedLetter: null,
+                checksRemaining: CHECKS_AVAILABLE,
+                lockedRows: new Set(),
+                startTime: Date.now(),
+                moveCount: 0,
+                firstTryBonus: 0, 
+                firstCheckUsed: false
+            };
+
+            elements.grid.innerHTML = '';
+            elements.tray.innerHTML = '';
+            elements.message.textContent = '';
+            elements.modalOverlay.classList.remove('visible'); 
+             elements.solutionDisplay.style.display = 'none';
+
+            elements.lights.innerHTML = '';
+            for (let i = 0; i < CHECKS_AVAILABLE; i++) { 
+                const light = document.createElement('div');
+                light.classList.add('check-light');
+                elements.lights.appendChild(light);
+            }
+
+            // Create Grid (7 columns, 5 rows)
+            PUZZLE.solution.forEach((sol, i) => {
+                const row = document.createElement('div');
+                row.classList.add('grid-row');
+                row.style.gridTemplateColumns = `repeat(7, ${getComputedStyle(document.documentElement).getPropertyValue('--tile-size')})`;
+
+                for (let j = 0; j < 7; j++) {
+                    const tile = document.createElement('div');
+                    if (j === 3) { // Central stem column
+                        tile.classList.add('grid-tile', 'stem-letter');
+                        tile.dataset.row = i;
+                        const letter = document.createElement('div');
+                        letter.classList.add('letter-tile');
+                        letter.textContent = PUZZLE.stem[i];
+                        tile.appendChild(letter);
+                    } else {
+                         let isEmptySlot = false;
+                         if (sol.stemIndex === 0 && (j === 4 || j === 5 || j === 6)) isEmptySlot = true; // S _ _ _
+                         else if (sol.stemIndex === 1 && (j === 2 || j === 4 || j === 5)) isEmptySlot = true; // _ S _ _
+                         else if (sol.stemIndex === 2 && (j === 1 || j === 2 || j === 4)) isEmptySlot = true; // _ _ S _
+                         else if (sol.stemIndex === 3 && (j === 0 || j === 1 || j === 2)) isEmptySlot = true; // _ _ _ S
+
+                        if(isEmptySlot) {
+                            tile.classList.add('grid-tile', 'empty');
+                            tile.dataset.row = i;
+                        } else {
+                            tile.classList.add('placeholder-tile');
+                        }
+                    }
+                    row.appendChild(tile);
+                }
+                elements.grid.appendChild(row);
+            });
+
+            // Create Tray (15 letters + 1 move counter = 16 tiles)
+             elements.tray.innerHTML = ''; 
+             
+             const trayRow1 = document.createElement('div');
+             trayRow1.classList.add('tray-row');
+             trayRow1.style.gridTemplateColumns = `repeat(8, var(--tile-size))`; 
+             
+             const trayRow2 = document.createElement('div');
+             trayRow2.classList.add('tray-row');
+             trayRow2.style.gridTemplateColumns = `repeat(8, var(--tile-size))`; 
+             
+             elements.tray.appendChild(trayRow1);
+             elements.tray.appendChild(trayRow2);
+
+             const trayTiles = [];
+             for(let i=0; i < 15; i++) {
+                 const trayTile = document.createElement('div');
+                 trayTile.classList.add('tray-tile');
+                 trayTile.addEventListener('click', handleTileClick); 
+                 trayTiles.push(trayTile);
+             }
+             
+             PUZZLE.trayLetters.split('').sort(() => Math.random() - 0.5).forEach((char, i) => {
+                 if (trayTiles[i]) { 
+                    const letterTile = document.createElement('div');
+                    letterTile.classList.add('letter-tile');
+                    letterTile.textContent = char;
+                    letterTile.addEventListener('click', handleTileClick); 
+                    trayTiles[i].appendChild(letterTile);
+                 }
+             });
+             
+             const moveCounterTile = document.createElement('div');
+             moveCounterTile.classList.add('grid-tile'); 
+             moveCounterTile.id = 'move-counter';
+             moveCounterTile.textContent = '0'; 
+             
+             trayTiles.slice(0, 8).forEach(tile => trayRow1.appendChild(tile)); 
+             trayTiles.slice(8, 15).forEach(tile => trayRow2.appendChild(tile)); 
+             trayRow2.appendChild(moveCounterTile); 
+
+            attachTileListeners();
+            elements.checkBtn.disabled = false;
+        }
+
+        function attachTileListeners() {
+             document.querySelectorAll('.grid-tile.empty').forEach(tile => {
+                tile.removeEventListener('click', handleTileClick);
+                tile.addEventListener('click', handleTileClick);
+            });
+             // Re-attach listeners to letters in tray
+             elements.tray.querySelectorAll('.letter-tile').forEach(tile => {
+                 tile.removeEventListener('click', handleTileClick);
+                 tile.addEventListener('click', handleTileClick);
+             });
+             // Re-attach listener to empty tray tiles
+             elements.tray.querySelectorAll('.tray-tile').forEach(tile => {
+                 if (tile.children.length === 0) {
+                     tile.removeEventListener('click', handleTileClick);
+                     tile.addEventListener('click', handleTileClick);
+                 }
+             });
+        }
+        
+        function startGame() {
+            elements.tagline.textContent = TAGLINES[Math.floor(Math.random() * TAGLINES.length)]; // Set tagline on play
+            elements.startScreen.style.opacity = '0';
+            elements.startScreen.style.visibility = 'hidden';
+            initGame();
+        }
+
+        // --- MODAL AND THEME LISTENERS ---
+        elements.playBtn.addEventListener('click', startGame);
+        elements.checkBtn.addEventListener('click', handleCheck);
+        elements.resetBtn.addEventListener('click', initGame); // Changed to initGame
+        elements.replayBtn.addEventListener('click', initGame); 
+        elements.shareBtn.addEventListener('click', handleShare);
+        
+        elements.helpBtn.addEventListener('click', () => elements.helpModalOverlay.classList.add('visible'));
+        elements.closeHelpBtn.addEventListener('click', () => elements.helpModalOverlay.classList.remove('visible'));
+        elements.helpModalOverlay.addEventListener('click', (e) => {
+            if (e.target === elements.helpModalOverlay) elements.helpModalOverlay.classList.remove('visible');
+        });
+        
+        elements.settingsBtn.addEventListener('click', () => elements.settingsModalOverlay.classList.add('visible'));
+        elements.closeSettingsBtn.addEventListener('click', () => elements.settingsModalOverlay.classList.remove('visible'));
+        elements.settingsModalOverlay.addEventListener('click', (e) => {
+            if (e.target === elements.settingsModalOverlay) elements.settingsModalOverlay.classList.remove('visible');
+        });
+        
+        elements.closeStatsBtn.addEventListener('click', () => elements.modalOverlay.classList.remove('visible'));
+        
+        elements.themeToggle.addEventListener('change', () => {
+            if (elements.themeToggle.checked) {
+                document.body.classList.remove('light-mode');
+            } else {
+                document.body.classList.add('light-mode');
+            }
+        });
+        
+        function updateMoveCounter() {
+            const counter = document.getElementById('move-counter');
+            if (counter) {
+                counter.textContent = state.moveCount;
+            }
+        }
+
+        function handleTileClick(e) {
+            e.stopPropagation();
+            const clickedElement = e.currentTarget;
+
+            if (clickedElement.classList.contains('letter-tile')) {
+                 const letterTile = clickedElement;
+                 if (letterTile.classList.contains('locked')) return;
+
+                 if (state.selectedLetter === letterTile) { 
+                     state.selectedLetter.classList.remove('selected');
+                     state.selectedLetter = null;
+                 } else if (state.selectedLetter) { 
+                      const sourceContainer = state.selectedLetter.parentElement;
+                      const targetContainer = letterTile.parentElement;
+                      
+                      if (targetContainer.classList.contains('stem-letter') || targetContainer.id === 'move-counter') return;
+
+                      targetContainer.appendChild(state.selectedLetter);
+                      sourceContainer.appendChild(letterTile);
+                      state.moveCount++;
+                      updateMoveCounter();
+                      
+                      state.selectedLetter.classList.remove('selected');
+                      state.selectedLetter = null;
+
+                      if (sourceContainer.classList.contains('grid-tile')) {
+                          sourceContainer.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
+                      }
+                      if (targetContainer.classList.contains('grid-tile')) {
+                           targetContainer.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
+                      }
+
+                 } else { 
+                     state.selectedLetter = letterTile;
+                     state.selectedLetter.classList.add('selected');
+                 }
+            } 
+            else if (clickedElement.classList.contains('empty')) {
+                const gridTileContainer = clickedElement;
+                if (state.selectedLetter && gridTileContainer.children.length === 0) {
+                    const sourceContainer = state.selectedLetter.parentElement;
+                    gridTileContainer.appendChild(state.selectedLetter);
+                    state.selectedLetter.classList.remove('selected');
+                    state.selectedLetter = null;
+                    state.moveCount++;
+                    updateMoveCounter();
+                    if (sourceContainer.classList.contains('grid-tile')) {
+                        sourceContainer.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
+                    }
+                }
+            } 
+             else if (clickedElement.classList.contains('tray-tile') && clickedElement.children.length === 0) {
+                 if (state.selectedLetter) {
+                    const sourceContainer = state.selectedLetter.parentElement;
+                     if(sourceContainer.classList.contains('grid-tile')) {
+                          clickedElement.appendChild(state.selectedLetter); 
+                          state.selectedLetter.classList.remove('selected');
+                          state.selectedLetter = null;
+                          state.moveCount++;
+                          updateMoveCounter();
+                          sourceContainer.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
+                     }
+                 }
+            }
+        }
+
+
+        function handleCheck() {
+            if (state.checksRemaining <= 0) return;
+
+            const isFirstCheckOfGame = !state.firstCheckUsed;
+             if (isFirstCheckOfGame) state.firstCheckUsed = true;
+
+            state.checksRemaining--;
+            document.querySelector(`.check-lights .check-light:nth-child(${CHECKS_AVAILABLE - state.checksRemaining})`).classList.add('used');
+
+            let currentFirstTryBonus = 0;
+
+            for (let i = 0; i < PUZZLE.stem.length; i++) {
+                if (state.lockedRows.has(i)) continue;
+
+                const sol = PUZZLE.solution[i];
+                const emptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`));
+
+                if (emptyTiles.length !== 3 || emptyTiles.some(t => t.children.length === 0)) continue;
+
+                let guess = Array(4).fill(''); 
+                guess[sol.stemIndex] = PUZZLE.stem[i];
+
+                emptyTiles.sort((a, b) => {
+                    const rectA = a.getBoundingClientRect();
+                    const rectB = b.getBoundingClientRect();
+                    return rectA.left - rectB.left;
+                });
+                
+                let emptyIdx = 0;
+                for(let k=0; k<4; k++) {
+                    if (k !== sol.stemIndex) {
+                        guess[k] = emptyTiles[emptyIdx].children[0].textContent;
+                        emptyIdx++;
+                    }
+                }
+                guess = guess.join('');
+
+                emptyTiles.forEach(t => t.classList.remove('hint-correct', 'hint-present', 'hint-incorrect'));
+
+                if (guess === sol.word) {
+                    if (isFirstCheckOfGame) currentFirstTryBonus += 150; 
+
+                    emptyTiles.forEach(t => {
+                        t.classList.add('hint-correct');
+                        if (t.children[0]) { // Check if child exists
+                            t.children[0].classList.add('locked');
+                        }
+                    });
+                    state.lockedRows.add(i);
+                } else {
+                    const guessLetters = guess.split('');
+                    const solutionLetters = sol.word.split('');
+                    const tileHints = Array(4).fill(null); 
+                    const solutionLetterUsed = Array(4).fill(false);
+                    
+                    solutionLetterUsed[sol.stemIndex] = true; // Mark stem letter as used
+
+                    // First Pass: Greens
+                    emptyTiles.forEach((tile, tileIndex) => {
+                         let guessPos = -1;
+                         let currentEmptyIdx = 0;
+                         // Sort empty tiles by DOM order to assign guessPos
+                         const sortedEmptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`)).sort((a,b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+                         
+                         for(let k=0; k<4; k++) {
+                             if(k !== sol.stemIndex) {
+                                 const potentialTile = sortedEmptyTiles[currentEmptyIdx];
+                                 if (tile === potentialTile) {
+                                     guessPos = k;
+                                     break;
+                                 }
+                                 currentEmptyIdx++;
+                             }
+                         }
+                        
+                         if (guessPos !== -1 && guessLetters[guessPos] === solutionLetters[guessPos]) {
+                             tileHints[guessPos] = 'hint-correct';
+                             solutionLetterUsed[guessPos] = true;
+                         }
+                    });
+
+                    // Second Pass: Oranges
+                    emptyTiles.forEach((tile, tileIndex) => {
+                         let guessPos = -1;
+                         let currentEmptyIdx = 0;
+                         const sortedEmptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`)).sort((a,b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+
+                         for(let k=0; k<4; k++) {
+                             if(k !== sol.stemIndex) {
+                                 const potentialTile = sortedEmptyTiles[currentEmptyIdx];
+                                 if (tile === potentialTile) {
+                                     guessPos = k;
+                                     break;
+                                 }
+                                 currentEmptyIdx++;
+                             }
+                         }
+
+                         if (guessPos !== -1 && tileHints[guessPos] !== 'hint-correct') {
+                             const guessLetter = guessLetters[guessPos];
+                             let foundOrangeMatch = false;
+                             for (let k = 0; k < 4; k++) {
+                                 if (k !== guessPos && guessLetter === solutionLetters[k] && !solutionLetterUsed[k]) {
+                                     tileHints[guessPos] = 'hint-present';
+                                     solutionLetterUsed[k] = true; 
+                                     foundOrangeMatch = true;
+                                     break;
+                                 }
+                             }
+                              if (!foundOrangeMatch) {
+                                  tileHints[guessPos] = 'hint-incorrect';
+                              }
+                         }
+                    });
+                    
+                    // Apply hints
+                    emptyTiles.forEach((tile, tileIndex) => {
+                         let hintPos = -1;
+                          let currentEmptyIdx = 0;
+                         const sortedEmptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`)).sort((a,b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+
+                         for(let k=0; k<4; k++) {
+                             if(k !== sol.stemIndex) {
+                                 const potentialTile = sortedEmptyTiles[currentEmptyIdx];
+                                 if (tile === potentialTile) {
+                                     hintPos = k;
+                                     break;
+                                 }
+                                 currentEmptyIdx++;
+                             }
+                         }
+                         
+                         if(hintPos !== -1 && tileHints[hintPos]) {
+                            tile.classList.add(tileHints[hintPos]);
+                         } else if (hintPos !== -1) { 
+                             tile.classList.add('hint-incorrect');
+                         }
+                    });
+                }
+            }
+
+            state.firstTryBonus += currentFirstTryBonus;
+
+            if (state.lockedRows.size === PUZZLE.stem.length) endGame(true);
+            else if (state.checksRemaining === 0) endGame(false);
+        }
+
+        function endGame(isWin) {
+            elements.checkBtn.disabled = true;
+            elements.replayBtn.textContent = "Play Again"; 
+            elements.modalTitle.textContent = isWin ? "Puzzle Solved!" : "Out of Checks!";
+
+            if (isWin) {
+                elements.message.textContent = "Congratulations!";
+                document.querySelectorAll('.grid-tile.stem-letter').forEach(t => t.classList.add('stem-win'));
+            } else {
+                elements.message.textContent = "Out of checks!";
+                let solutionText = "";
+                 for (let i = 0; i < PUZZLE.stem.length; i++) {
+                     solutionText += `${PUZZLE.stem[i]} -> ${PUZZLE.solution[i].word}\n`;
+                 }
+                 const solutionTextDiv = document.getElementById('solution-text');
+                 if (solutionTextDiv) {
+                    solutionTextDiv.textContent = solutionText;
+                    elements.solutionDisplay.style.display = 'block';
+                 } else {
+                     console.error("solutionTextEl is not defined");
+                     elements.message.textContent = `Solution:\n${solutionText}`;
+                 }
+            }
+            setTimeout(() => showStats(isWin), 2000);
+        }
+
+        function animateValue(element, start, end, duration, isBonus = false) {
+           let startTimestamp = null;
+           const step = (timestamp) => {
+               if (!startTimestamp) startTimestamp = timestamp;
+               const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+               element.textContent = Math.floor(progress * (end - start) + start);
+               if (progress < 1) {
+                   window.requestAnimationFrame(step);
+               } else {
+                    element.textContent = end;
+                    if (isBonus) { element.textContent = `+${end}`; }
+               }
+           };
+            if (isBonus && start === 0) { element.textContent = `+${start}`; }
+            else { element.textContent = start; }
+           window.requestAnimationFrame(step);
+       }
+
+        function showStats(isWin) {
+            const timeTaken = Math.round((Date.now() - state.startTime) / 1000);
+            const minutes = Math.floor(timeTaken / 60);
+            const seconds = timeTaken % 60;
+            
+            const pointsPerCheck = 100; 
+            const checkBonus = state.checksRemaining * pointsPerCheck;
+            const timeScore = Math.max(0, 600 - timeTaken) * 10; 
+            const baseMoves = PUZZLE.stem.length * 3; 
+            const pointsPerMoveSaved = 30;
+            const moveBonus = Math.max(0, baseMoves * 2 - state.moveCount) * pointsPerMoveSaved;
+
+            const totalScore = timeScore + state.firstTryBonus + checkBonus + moveBonus;
+
+            elements.finalTimeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            elements.finalMovesEl.textContent = state.moveCount;
+            // Animate scores
+            animateValue(elements.firstTryBonusEl, 0, state.firstTryBonus, 500, true);
+            animateValue(elements.checkBonusEl, 0, checkBonus, 500, true);
+            animateValue(elements.moveBonusEl, 0, moveBonus, 500, true); 
+            animateValue(elements.finalScoreEl, 0, isWin ? totalScore : 0, 1000);
+
+            elements.modalOverlay.classList.add('visible'); // Use overlay
+        }
+
+        function handleShare() {
+            const time = document.getElementById('final-time').textContent;
+            const moves = document.getElementById('final-moves').textContent;
+            const score = document.getElementById('final-score').textContent; 
+            const textToCopy = `I solved today's Trellis puzzle! 🌿\nTime: ${time} | Moves: ${moves} | Score: ${score}\n\nCan you solve it?`;
+            const textArea = document.createElement("textarea");
+            textArea.value = textToCopy;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            elements.shareBtn.textContent = 'Copied!';
+            setTimeout(() => elements.shareBtn.textContent = 'Share', 2000);
+        }
+
+        // Set random tagline on initial load
+        elements.tagline.textContent = TAGLINES[Math.floor(Math.random() * TAGLINES.length)];
+        
+        // initGame(); // Don't start game immediately, wait for play button
+    });
+    </script>
+</body>
+</html>
+
