@@ -104,7 +104,7 @@
         }
 
         /* Standard Buttons */
-        #check-btn, #replay-btn, #reset-btn { 
+        #check-btn, #replay-btn { /* Removed #reset-btn */
             background-color: var(--hint-correct); /* New rest state: green */
             color: #FFFFFF; /* White text for contrast */
             border: 1px solid var(--hint-correct);
@@ -112,6 +112,8 @@
             transition: background-color 0.2s, border-color 0.2s;
             font-family: 'Inter', sans-serif; /* Keep buttons sans-serif for readability */
             font-weight: 700;
+            box-sizing: border-box; /* Ensure padding is included */
+            height: 50px; /* Explicit height */
         }
         /* Special Buttons */
         #share-btn, #play-btn {
@@ -125,7 +127,7 @@
         }
         
         /* Hover States */
-        #check-btn:hover, #replay-btn:hover, #reset-btn:hover { 
+        #check-btn:hover, #replay-btn:hover { /* Removed #reset-btn */
             background-color: var(--selection-color); /* Hover state: blue */
             border-color: var(--selection-color);
         }
@@ -141,6 +143,35 @@
             cursor: not-allowed; 
             opacity: 0.7; 
         }
+
+        /* --- UPDATED HEADER MOVE COUNTER --- */
+        #header-move-counter {
+            background-color: var(--hint-incorrect);
+            color: #FFFFFF;
+            border: 1px solid var(--hint-incorrect);
+            border-radius: 8px;
+            padding: 0.5rem 1rem; /* Match check button padding */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box; /* Ensure padding is included in size */
+            height: 50px; /* Explicit height */
+            line-height: 1.1; /* Adjust line height */
+        }
+        #header-move-counter span {
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 0.7rem; /* Smaller font */
+            color: #F0F0F0;
+            opacity: 0.8;
+        }
+         #header-move-counter #move-count-text {
+            font-family: 'Lora', serif;
+            font-size: 1.2rem; /* Smaller font */
+            color: #FFFFFF;
+            opacity: 1;
+         }
         
         .main-area {
             display: flex;
@@ -187,24 +218,18 @@
         .letter-tile.locked { cursor: not-allowed; }
         
         /* --- NEW: Full Tile Hint Styles --- */
-        .grid-tile.hint-correct .letter-tile, .letter-tile.locked { 
+        /* These classes are now applied to the .letter-tile */
+        .letter-tile.hint-correct, .letter-tile.locked { 
             background-color: var(--hint-correct);
             color: #FFFFFF;
         }
-        .grid-tile.hint-present .letter-tile { 
+        .letter-tile.hint-present { 
             background-color: var(--hint-present);
             color: #FFFFFF;
         }
-        .grid-tile.hint-incorrect .letter-tile { 
+        .letter-tile.hint-incorrect { 
             background-color: var(--hint-incorrect);
             color: #FFFFFF;
-        }
-        /* Remove border-only hints */
-        .grid-tile.hint-correct { border-color: var(--border-color); }
-        .grid-tile.hint-present { border-color: var(--border-color); }
-        .grid-tile.hint-incorrect { border-color: var(--border-color); }
-        body.light-mode .grid-tile.stem-letter {
-            border: 1px solid var(--selection-color); /* Keep blue border for light mode stem */
         }
         
         .letter-tray {
@@ -230,14 +255,7 @@
              width: var(--tile-size); 
              height: var(--tile-size);
         }
-        #move-counter {
-            background-color: var(--hint-incorrect); /* Red tile */
-            border: 1px solid var(--hint-incorrect); 
-            color: #FFFFFF; /* White font */
-            font-size: calc(var(--tile-size) * 0.4);
-            font-weight: 700;
-            font-family: 'Lora', serif; /* Use Lora serif font */
-        }
+        /* REMOVED move-counter from tray */
         
         #message-area { font-size: 1.2rem; height: 1.5rem; color: var(--hint-correct); font-weight: bold; text-align: center; }
         
@@ -451,7 +469,11 @@
             </button>
             <div class="check-lights" id="check-lights"></div>
             <button id="check-btn">Check</button>
-            <button id="reset-btn">Restart Level</button> <!-- Text restored -->
+            <!-- NEW MOVE COUNTER IN HEADER -->
+            <div id="header-move-counter">
+                <span>Moves</span>
+                <span id="move-count-text">0</span>
+            </div>
             <button class="icon-btn" id="settings-btn" aria-label="Settings">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </button>
@@ -548,8 +570,8 @@
         // --- 4-LETTER WORD DICTIONARY ---
         const ALL_WORDS = ["ABLE", "ACID", "AGED", "ALSO", "AREA", "ARMY", "AWAY", "BABY", "BACK", "BALL", "BAND", "BANK", "BASE", "BATH", "BEAR", "BEAT", "BEEN", "BELL", "BELT", "BEST", "BILL", "BIRD", "BLOW", "BLUE", "BOAT", "BODY", "BOMB", "BOND", "BONE", "BOOK", "BOOM", "BORN", "BOSS", "BOTH", "BOWL", "BULK", "BURN", "BUSH", "BUSY", "CAGE", "CAKE", "CALL", "CALM", "CAME", "CAMP", "CARD", "CARE", "CASE", "CASH", "CAST", "CELL", "CENT", "CHAT", "CHIP", "CITY", "CLUB", "COAL", "COAT", "CODE", "COLD", "COME", "COOK", "COOL", "COPY", "CORD", "CORE", "CORN", "COST", "CREW", "CROP", "DARK", "DATA", "DATE", "DAWN", "DAYS", "DEAD", "DEAL", "DEAR", "DEBT", "DECK", "DEEP", "DEER", "DESK", "DIAL", "DICE", "DIET", "DIRT", "DISK", "DOES", "DONE", "DOOR", "DOSE", "DOWN", "DRAW", "DREW", "DROP", "DRUG", "DRUM", "DUCK", "DUEL", "DUKE", "DUST", "DUTY", "EACH", "EARL", "EARN", "EASE", "EAST", "EASY", "EDGE", "ELSE", "EVEN", "EVER", "EVIL", "EXIT", "FACE", "FACT", "FAIL", "FAIR", "FALL", "FARM", "FAST", "FATE", "FEAR", "FEED", "FEEL", "FEET", "FELL", "FELT", "FILE", "FILL", "FILM", "FIND", "FINE", "FIRE", "FIRM", "FISH", "FIVE", "FLAG", "FLAT", "FLOW", "FOOD", "FOOT", "FORD", "FORM", "FORT", "FOUR", "FREE", "FROM", "FUEL", "FULL", "FUND", "GAIN", "GAME", "GANG", "GATE", "GAVE", "GEAR", "GENE", "GIFT", "GIRL", "GIVE", "GLAD", "GOAL", "GOES", "GOLD", "GONE", "GOOD", "GRAY", "GREW", "GROW", "GULF", "HAIR", "HALF", "HALL", "HAND", "HANG", "HARD", "HARM", "HATE", "HAVE", "HEAD", "HEAR", "HEAT", "HELD", "HELL", "HELP", "HERE", "HERO", "HIGH", "HILL", "HIRE", "HOLD", "HOLE", "HOLY", "HOME", "HOPE", "HOUR", "HUGE", "HUNG", "HUNT", "HURT", "IDEA", "IDLE", "INCH", "INTO", "IRON", "ITEM", "JOIN", "JOKE", "JUMP", "JUST", "KEEN", "KEEP", "KEPT", "KICK", "KILL", "KIND", "KING", "KNEE", "KNEW", "KNOW", "LACK", "LADY", "LAID", "LAKE", "LAMB", "LAMP", "LAND", "LANE", "LAST", "LATE", "LAZY", "LEAD", "LEAF", "LEFT", "LEND", "LENT", "LESS", "LIFE", "LIFT", "LIKE", "LINE", "LINK", "LIST", "LIVE", "LOAD", "LOAN", "LOCK", "LONG", "LOOK", "LORD", "LOSE", "LOSS", "LOST", "LOUD", "LOVE", "LOW", "LUCK", "LUNG", "MADE", "MAIL", "MAIN", "MAKE", "MALE", "MANY", "MARK", "MASS", "MEAL", "MEAN", "MEAT", "MEET", "MENU", "MILE", "MILK", "MILL", "MIND", "MINE", "MISS", "MODE", "MOOD", "MOON", "MORE", "MOST", "MOVE", "MUCH", "MUST", "NAME", "NAVY", "NEAR", "NECK", "NEED", "NEWS", "NEXT", "NICE", "NINE", "NONE", "NOON", "NORM", "NOSE", "NOTE", "NOUN", "ONCE", "ONLY", "ONTO", "OPEN", "ORAL", "OVER", "PACE", "PACK", "PAGE", "PAID", "PAIN", "PAIR", "PALM", "PARK", "PART", "PASS", "PAST", "PATH", "PAY", "PEAK", "PICK", "PILE", "PINK", "PIPE", "PLAN", "PLAY", "PLOT", "PLUG", "PLUS", "POEM", "POET", "POLE", "POLL", "POOL", "POOR", "PORT", "POST", "PULL", "PURE", "PUSH", "RACE", "RAIL", "RAIN", "RANK", "RARE", "RATE", "READ", "REAL", "REAR", "RELY", "RENT", "REST", "RICE", "RICH", "RIDE", "RING", "RISE", "RISK", "ROAD", "ROCK", "ROLE", "ROLL", "ROOF", "ROOM", "ROOT", "ROPE", "ROSE", "ROUGH", "ROUND", "ROW", "RULE", "RUSH", "SAFE", "SAGE", "SAID", "SAIL", "SALE", "SALT", "SAME", "SAND", "SAVE", "SAY", "SEAT", "SEED", "SEEK", "SEEM", "SEEN", "SELF", "SELL", "SEND", "SENT", "SHIP", "SHOE", "SHOP", "SHOT", "SHOW", "SICK", "SIDE", "SIGN", "SILK", "SING", "SIT", "SITE", "SIZE", "SKIN", "SLIP", "SLOW", "SNOW", "SOFT", "SOIL", "SOLD", "SOLE", "SOME", "SONG", "SOON", "SORT", "SOUL", "SPOT", "STAR", "STAY", "STEP", "STOP", "SUCH", "SUIT", "SUM", "SUN", "SURE", "TAKE", "TALE", "TALK", "TALL", "TANK", "TAPE", "TASK", "TEAM", "TEAR", "TELL", "TEND", "TENT", "TERM", "TEST", "TEXT", "THAN", "THAT", "THEM", "THEN", "THIN", "THIS", "THUS", "TIDE", "TIDY", "TIE", "TILE", "TIME", "TINY", "TIRE", "TOE", "TONE", "TOOK", "TOOL", "TOUR", "TOWN", "TRAP", "TREE", "TRIP", "TRUE", "TUNE", "TURN", "TWIN", "TYPE", "UNIT", "UPON", "USED", "USER", "VAST", "VERY", "VIEW", "VOTE", "WAGE", "WAIT", "WAKE", "WALK", "WALL", "WANT", "WARM", "WARN", "WASH", "WAVE", "WEAK", "WEAR", "WEEK", "WELL", "WENT", "WERE", "WEST", "WHAT", "WHEN", "WHIP", "WIDE", "WIFE", "WILD", "WILL", "WIND", "WINE", "WING", "WIRE", "WISE", "WISH", "WITH", "WOOD", "WOOL", "WORD", "WORK", "YARD", "YEAR", "YOUR", "ZERO", "ZONE"];
         
-        // --- 5-LETTER STEM WORDS ---
-        const STEM_WORDS = ["AUDIO", "BRAVE", "CHAIR", "DREAM", "EARTH", "FLUID", "GRAPE", "HOUSE", "INPUT", "JOKER", "KNOWN", "LIGHT", "MUSIC", "NORTH", "OCEAN", "PRICE", "QUERY", "RIGHT", "SOUND", "THING", "PLUCK", "TRACE", "SWING"]; 
+        // --- 7-LETTER STEM WORDS (EXPANDED) ---
+        const STEM_WORDS = ["CABINET", "JOURNEY", "LIBRARY", "MYSTERY", "QUALITY", "RAINBOW", "STATION", "THEATER", "WHISPER", "COUNTRY", "EXAMPLE", "FISHING", "PROBLEM", "SUBJECT", "WIDGETS", "PRODUCT", "HISTORY", "CENTURY", "MACHINE", "BRIGHTEN", "CAMPFIRE", "TERMINAL", "QUESTION", "REPUBLIC", "VERTICAL", "CONQUEST", "FRAGMENT", "GLIMPSED", "HARMONIC", "INFUSION", "OVERHAUL", "PLATINUM", "STRIPPED", "WONDERED", "BUCKWHEAT", "COPYRIGHT", "DANGEROUS", "FLIGHTWAY", "GYMNASTIC", "HYDRATION", "IMPORTUNE", "JACKLIGHT", "KILOBYTES", "LAUNDRIES", "NIGHTWALK", "OBJECTIFY", "PACKAGING", "QUADRILLE", "RHAPSODYZ", "SHOCKINGLY", "SUBWAYING", "TRUCKLING", "UNPACKING", "VOYAGING", "ZYLOPHONE"];
         
         // --- NEW TAGLINE LIST ---
         const TAGLINES = [
@@ -612,14 +634,14 @@
         let moveCount;
         let firstTryBonus;
         let firstCheckUsed;
-        const CHECKS_AVAILABLE = 4; // Set checks to 4
+        const CHECKS_AVAILABLE = 6; // Set checks to 6
 
-        // --- DYNAMIC PUZZLE GENERATION (5-letter stem, 4-letter words) ---
+        // --- DYNAMIC PUZZLE GENERATION (7-letter stem, 4-letter words) ---
         function generatePuzzle() {
              let isValidPuzzle = false;
              let generatedPuzzle;
              let attempts = 0;
-             const stemLength = 5; 
+             const stemLength = 7; 
 
              while (!isValidPuzzle && attempts < 2000) { 
                  attempts++;
@@ -648,7 +670,7 @@
 
                  if (!possible) continue;
 
-                 // Check letter economy (5 stems * 3 letters = 15 tray letters)
+                 // Check letter economy (7 stems * 3 letters = 21 tray letters)
                  let requiredTrayLetters = [];
                   solution.forEach(sol => {
                       for(let i = 0; i < sol.word.length; i++) {
@@ -673,7 +695,7 @@
                       if (!requiredCounts[letter]) { countsMatch = false; break; }
                  }
 
-                 // Check correct tray length (15 for 5-letter stem)
+                 // Check correct tray length (21 for 7-letter stem)
                  if (countsMatch && actualTrayLetters.length === stemLength * 3) {
                      isValidPuzzle = true;
                      generatedPuzzle = { stem, solution, trayLetters: actualTrayLetters };
@@ -685,14 +707,15 @@
 
              if (!isValidPuzzle) {
                   console.error(`CRITICAL FAILURE: Could not generate valid puzzle after 2000 attempts.`);
-                  // Fallback to a known-good 5-stem puzzle
+                  // Fallback to a known-good 7-stem puzzle
                   return {
-                    stem: "AUDIO",
+                    stem: "CABINET",
                     solution: [
-                        { word: "ROAD", stemIndex: 2 }, { word: "DUCK", stemIndex: 1 }, { word: "DISK", stemIndex: 0 },
-                        { word: "IRON", stemIndex: 1 }, { word: "FOOD", stemIndex: 1 }
+                        { word: "BACK", stemIndex: 2 }, { word: "ABLE", stemIndex: 1 }, { word: "BILL", stemIndex: 0 },
+                        { word: "TINY", stemIndex: 2 }, { word: "NAME", stemIndex: 2 }, { word: "EACH", stemIndex: 0 },
+                        { word: "CHAT", stemIndex: 3 }
                     ],
-                    trayLetters: "RADUCKDSKIRNFOD"
+                    trayLetters: "BAKBLELILTYINAMEACHHAT"
                   };
              }
              return generatedPuzzle;
@@ -703,7 +726,7 @@
             grid: document.getElementById('puzzle-grid'),
             tray: document.getElementById('letter-tray'),
             checkBtn: document.getElementById('check-btn'),
-            resetBtn: document.getElementById('reset-btn'), // Added back resetBtn
+            // resetBtn: document.getElementById('reset-btn'), // This ID does not exist in the HTML
             lights: document.getElementById('check-lights'),
             message: document.getElementById('message-area'),
             modal: document.getElementById('stats-modal'),
@@ -731,7 +754,8 @@
             closeSettingsBtn: document.getElementById('close-settings-btn'),
             closeStatsBtn: document.getElementById('close-stats-btn'),
             themeToggle: document.getElementById('theme-toggle'),
-            tagline: document.getElementById('tagline') // Tagline element
+            tagline: document.getElementById('tagline'), // Tagline element
+            moveCountText: document.getElementById('move-count-text') // Header move counter
         };
 
         let state = {};
@@ -770,7 +794,7 @@
                 elements.lights.appendChild(light);
             }
 
-            // Create Grid (7 columns, 5 rows)
+            // Create Grid (7 columns, 7 rows)
             PUZZLE.solution.forEach((sol, i) => {
                 const row = document.createElement('div');
                 row.classList.add('grid-row');
@@ -804,22 +828,27 @@
                 elements.grid.appendChild(row);
             });
 
-            // Create Tray (15 letters + 1 move counter = 16 tiles)
+            // Create Tray (21 letters)
              elements.tray.innerHTML = ''; 
              
              const trayRow1 = document.createElement('div');
              trayRow1.classList.add('tray-row');
-             trayRow1.style.gridTemplateColumns = `repeat(8, var(--tile-size))`; 
+             trayRow1.style.gridTemplateColumns = `repeat(7, var(--tile-size))`; // 7 tiles
              
              const trayRow2 = document.createElement('div');
              trayRow2.classList.add('tray-row');
-             trayRow2.style.gridTemplateColumns = `repeat(8, var(--tile-size))`; 
+             trayRow2.style.gridTemplateColumns = `repeat(7, var(--tile-size))`; // 7 tiles
+             
+             const trayRow3 = document.createElement('div');
+             trayRow3.classList.add('tray-row');
+             trayRow3.style.gridTemplateColumns = `repeat(7, var(--tile-size))`; // 7 tiles
              
              elements.tray.appendChild(trayRow1);
              elements.tray.appendChild(trayRow2);
+             elements.tray.appendChild(trayRow3);
 
              const trayTiles = [];
-             for(let i=0; i < 15; i++) {
+             for(let i=0; i < 21; i++) { // 21 tiles
                  const trayTile = document.createElement('div');
                  trayTile.classList.add('tray-tile');
                  trayTile.addEventListener('click', handleTileClick); 
@@ -836,17 +865,14 @@
                  }
              });
              
-             const moveCounterTile = document.createElement('div');
-             moveCounterTile.classList.add('grid-tile'); 
-             moveCounterTile.id = 'move-counter';
-             moveCounterTile.textContent = '0'; 
-             
-             trayTiles.slice(0, 8).forEach(tile => trayRow1.appendChild(tile)); 
-             trayTiles.slice(8, 15).forEach(tile => trayRow2.appendChild(tile)); 
-             trayRow2.appendChild(moveCounterTile); 
+             // Add tiles to rows
+             trayTiles.slice(0, 7).forEach(tile => trayRow1.appendChild(tile)); 
+             trayTiles.slice(7, 14).forEach(tile => trayRow2.appendChild(tile)); 
+             trayTiles.slice(14, 21).forEach(tile => trayRow3.appendChild(tile)); 
 
             attachTileListeners();
             elements.checkBtn.disabled = false;
+            updateMoveCounter(); // Set move counter to 0
         }
 
         function attachTileListeners() {
@@ -878,7 +904,7 @@
         // --- MODAL AND THEME LISTENERS ---
         elements.playBtn.addEventListener('click', startGame);
         elements.checkBtn.addEventListener('click', handleCheck);
-        elements.resetBtn.addEventListener('click', initGame); // Changed to initGame
+        // elements.resetBtn.addEventListener('click', initGame); // This button is removed
         elements.replayBtn.addEventListener('click', initGame); 
         elements.shareBtn.addEventListener('click', handleShare);
         
@@ -905,9 +931,8 @@
         });
         
         function updateMoveCounter() {
-            const counter = document.getElementById('move-counter');
-            if (counter) {
-                counter.textContent = state.moveCount;
+            if (elements.moveCountText) { 
+                elements.moveCountText.textContent = state.moveCount;
             }
         }
 
@@ -926,22 +951,19 @@
                       const sourceContainer = state.selectedLetter.parentElement;
                       const targetContainer = letterTile.parentElement;
                       
-                      if (targetContainer.classList.contains('stem-letter') || targetContainer.id === 'move-counter') return;
+                      if (targetContainer.classList.contains('stem-letter')) return;
 
                       targetContainer.appendChild(state.selectedLetter);
                       sourceContainer.appendChild(letterTile);
                       state.moveCount++;
                       updateMoveCounter();
                       
+                      // --- FIX: REMOVE HINTS ON SWAP ---
+                      state.selectedLetter.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
+                      letterTile.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
+                      
                       state.selectedLetter.classList.remove('selected');
                       state.selectedLetter = null;
-
-                      if (sourceContainer.classList.contains('grid-tile')) {
-                          sourceContainer.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
-                      }
-                      if (targetContainer.classList.contains('grid-tile')) {
-                           targetContainer.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
-                      }
 
                  } else { 
                      state.selectedLetter = letterTile;
@@ -953,13 +975,14 @@
                 if (state.selectedLetter && gridTileContainer.children.length === 0) {
                     const sourceContainer = state.selectedLetter.parentElement;
                     gridTileContainer.appendChild(state.selectedLetter);
+                    
+                    // --- FIX: REMOVE HINTS ON MOVE ---
+                    state.selectedLetter.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
+                    
                     state.selectedLetter.classList.remove('selected');
                     state.selectedLetter = null;
                     state.moveCount++;
                     updateMoveCounter();
-                    if (sourceContainer.classList.contains('grid-tile')) {
-                        sourceContainer.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
-                    }
                 }
             } 
              else if (clickedElement.classList.contains('tray-tile') && clickedElement.children.length === 0) {
@@ -967,11 +990,14 @@
                     const sourceContainer = state.selectedLetter.parentElement;
                      if(sourceContainer.classList.contains('grid-tile')) {
                           clickedElement.appendChild(state.selectedLetter); 
+                          
+                           // --- FIX: REMOVE HINTS ON RETURN ---
+                          state.selectedLetter.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
+                          
                           state.selectedLetter.classList.remove('selected');
                           state.selectedLetter = null;
                           state.moveCount++;
                           updateMoveCounter();
-                          sourceContainer.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
                      }
                  }
             }
@@ -1015,15 +1041,21 @@
                 }
                 guess = guess.join('');
 
-                emptyTiles.forEach(t => t.classList.remove('hint-correct', 'hint-present', 'hint-incorrect'));
+                // Clear hints from letter tiles
+                emptyTiles.forEach(t => {
+                    if (t.children[0]) {
+                        t.children[0].classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
+                    }
+                });
+
 
                 if (guess === sol.word) {
                     if (isFirstCheckOfGame) currentFirstTryBonus += 150; 
 
                     emptyTiles.forEach(t => {
-                        t.classList.add('hint-correct');
-                        if (t.children[0]) { // Check if child exists
+                        if (t.children[0]) { 
                             t.children[0].classList.add('locked');
+                            t.children[0].classList.add('hint-correct'); // Color tile directly
                         }
                     });
                     state.lockedRows.add(i);
@@ -1035,17 +1067,16 @@
                     
                     solutionLetterUsed[sol.stemIndex] = true; // Mark stem letter as used
 
+                    // --- REBUILT HINT LOGIC ---
+                    
                     // First Pass: Greens
                     emptyTiles.forEach((tile, tileIndex) => {
+                         const sortedEmptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`)).sort((a,b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
                          let guessPos = -1;
                          let currentEmptyIdx = 0;
-                         // Sort empty tiles by DOM order to assign guessPos
-                         const sortedEmptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`)).sort((a,b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
-                         
                          for(let k=0; k<4; k++) {
                              if(k !== sol.stemIndex) {
-                                 const potentialTile = sortedEmptyTiles[currentEmptyIdx];
-                                 if (tile === potentialTile) {
+                                 if (tile === sortedEmptyTiles[currentEmptyIdx]) {
                                      guessPos = k;
                                      break;
                                  }
@@ -1061,10 +1092,9 @@
 
                     // Second Pass: Oranges
                     emptyTiles.forEach((tile, tileIndex) => {
+                         const sortedEmptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`)).sort((a,b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
                          let guessPos = -1;
                          let currentEmptyIdx = 0;
-                         const sortedEmptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`)).sort((a,b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
-
                          for(let k=0; k<4; k++) {
                              if(k !== sol.stemIndex) {
                                  const potentialTile = sortedEmptyTiles[currentEmptyIdx];
@@ -1095,10 +1125,9 @@
                     
                     // Apply hints
                     emptyTiles.forEach((tile, tileIndex) => {
-                         let hintPos = -1;
-                          let currentEmptyIdx = 0;
                          const sortedEmptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`)).sort((a,b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
-
+                         let hintPos = -1;
+                         let currentEmptyIdx = 0;
                          for(let k=0; k<4; k++) {
                              if(k !== sol.stemIndex) {
                                  const potentialTile = sortedEmptyTiles[currentEmptyIdx];
@@ -1110,10 +1139,9 @@
                              }
                          }
                          
-                         if(hintPos !== -1 && tileHints[hintPos]) {
-                            tile.classList.add(tileHints[hintPos]);
-                         } else if (hintPos !== -1) { 
-                             tile.classList.add('hint-incorrect');
+                         const hintClass = tileHints[hintPos] || 'hint-incorrect'; // Default to incorrect if no hint
+                         if (tile.children[0]) {
+                            tile.children[0].classList.add(hintClass);
                          }
                     });
                 }
