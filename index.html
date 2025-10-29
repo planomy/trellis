@@ -15,12 +15,15 @@
             --letter-bg: #404040;
             --text-color: #E0E0E0;
             --border-color: #555;
-            --hint-correct: #4CAF50;
-            --hint-present: #E6B400;
-            --hint-incorrect: #A12C2C; /* Made this red less bright */
-            --selection-color: #2979FF;
+            --hint-correct: #4CAF50; /* Green */
+            --hint-present: #E6B400; /* Orange */
+            --hint-incorrect: #A12C2C; /* Dark Red */
+            --selection-color: #2979FF; /* Blue */
+             --unchecked-color: #555; /* Grey for emoji grid */
             --tile-size: clamp(35px, 6vmin, 50px);
             --gap: 4px;
+             /* --- NEW: Animation Duration --- */
+             --flip-duration: 0.6s;
         }
         /* Light Mode Theme */
         body.light-mode {
@@ -33,6 +36,7 @@
             --hint-correct: #4CAF50;
             --hint-present: #E6B400;
             --hint-incorrect: #D32F2F; /* Darker red for light mode */
+            --unchecked-color: #AAAAAA; /* Lighter grey */
         }
         body {
             /* Changed Font */
@@ -45,6 +49,8 @@
             min-height: 100vh;
             margin: 0;
             overflow-x: hidden;
+            /* --- NEW: Perspective for 3D flip --- */
+            perspective: 1000px;
         }
         .game-container {
             display: flex;
@@ -75,7 +81,7 @@
             background-color: var(--hint-correct);
         }
         .check-light.used { background-color: var(--hint-incorrect); }
-        
+
         /* Icon Buttons */
         .icon-btn {
             background: none;
@@ -89,7 +95,7 @@
             opacity: 0.7;
             transition: opacity 0.2s, color 0.2s; /* Added color transition */
         }
-        .icon-btn:hover { 
+        .icon-btn:hover {
             opacity: 1;
             color: var(--selection-color); /* Hover blue */
         }
@@ -104,7 +110,7 @@
         }
 
         /* Standard Buttons */
-        #check-btn, #replay-btn { /* Removed #reset-btn */
+        #check-btn, #practice-btn {
             background-color: var(--hint-correct); /* New rest state: green */
             color: #FFFFFF; /* White text for contrast */
             border: 1px solid var(--hint-correct);
@@ -125,26 +131,25 @@
             font-family: 'Inter', sans-serif;
             font-weight: 700;
         }
-        
+
         /* Hover States */
-        #check-btn:hover, #replay-btn:hover { /* Removed #reset-btn */
+        #check-btn:hover, #practice-btn:hover {
             background-color: var(--selection-color); /* Hover state: blue */
             border-color: var(--selection-color);
         }
          #share-btn:hover, #play-btn:hover {
             background-color: var(--hint-correct); /* Hover state: green */
             border-color: var(--hint-correct);
-        }
+         }
 
-        #check-btn:disabled { 
-            background-color: #282828; 
+        #check-btn:disabled, #play-btn:disabled {
+            background-color: #282828;
             border-color: #282828;
             color: #555;
-            cursor: not-allowed; 
-            opacity: 0.7; 
+            cursor: not-allowed;
+            opacity: 0.7;
         }
 
-        /* --- UPDATED HEADER MOVE COUNTER --- */
         #header-move-counter {
             background-color: var(--hint-incorrect);
             color: #FFFFFF;
@@ -172,7 +177,7 @@
             color: #FFFFFF;
             opacity: 1;
          }
-        
+
         .main-area {
             display: flex;
             flex-direction: column; /* Stack grid and tray */
@@ -197,9 +202,8 @@
             transition: background-color 0.5s, border-color 0.5s;
             border: 1px solid var(--selection-color);
         }
-        /* --- MODIFIED: Color letter tile on win --- */
-        .grid-tile.stem-win, .grid-tile.stem-win .letter-tile { 
-            background-color: var(--selection-color); 
+        .grid-tile.stem-win, .grid-tile.stem-win .letter-tile {
+            background-color: var(--selection-color);
             color: #FFF; /* Ensure white text */
             border-color: var(--selection-color); /* Ensure border matches */
         }
@@ -207,31 +211,44 @@
             width: 90%; height: 90%; background-color: var(--letter-bg);
             border-radius: 4px; font-size: calc(var(--tile-size) * 0.5); font-weight: 700;
             cursor: pointer; user-select: none;
-            transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s; /* Added bg color transition */
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s; /* Existing transitions */
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             display: flex; justify-content: center; align-items: center;
+             /* --- NEW: For flip animation --- */
+             transform-style: preserve-3d;
+             backface-visibility: hidden; /* Hide back during flip */
         }
         .letter-tile.selected {
             box-shadow: 0 0 0 3px var(--selection-color);
             transform: scale(1.05);
         }
         .letter-tile.locked { cursor: not-allowed; }
-        
-        /* --- NEW: Full Tile Hint Styles --- */
-        /* These classes are now applied to the .letter-tile */
-        .letter-tile.hint-correct, .letter-tile.locked { 
+
+        /* --- Tile Hint Styles --- */
+        .letter-tile.hint-correct, .letter-tile.locked {
             background-color: var(--hint-correct);
             color: #FFFFFF;
         }
-        .letter-tile.hint-present { 
+        .letter-tile.hint-present {
             background-color: var(--hint-present);
             color: #FFFFFF;
         }
-        .letter-tile.hint-incorrect { 
+        .letter-tile.hint-incorrect {
             background-color: var(--hint-incorrect);
             color: #FFFFFF;
         }
-        
+
+        /* --- NEW: Flip Animation --- */
+        @keyframes flip {
+            0% { transform: rotateX(0deg); background-color: var(--letter-bg); }
+            50% { transform: rotateX(90deg); background-color: var(--letter-bg); } /* Color change happens via JS */
+            100% { transform: rotateX(0deg); } /* Background is now the hint color */
+        }
+
+        .letter-tile.reveal {
+             animation: flip var(--flip-duration) ease-in-out;
+        }
+
         .letter-tray {
             display: flex;
             flex-direction: column; /* Stack rows */
@@ -242,7 +259,7 @@
             width: auto;
         }
         body.light-mode .letter-tray {
-             background-color: #CFCFCF; 
+             background-color: #CFCFCF;
         }
         .tray-row {
             display: grid;
@@ -252,13 +269,12 @@
              background-color: transparent;
              border: none;
              padding: 0;
-             width: var(--tile-size); 
+             width: var(--tile-size);
              height: var(--tile-size);
         }
-        /* REMOVED move-counter from tray */
-        
+
         #message-area { font-size: 1.2rem; height: 1.5rem; color: var(--hint-correct); font-weight: bold; text-align: center; }
-        
+
         /* Modal Styles */
         .modal-overlay {
             position: fixed;
@@ -309,18 +325,42 @@
         }
         .modal-close-btn:hover { opacity: 1; }
         .modal-close-btn svg { width: 24px; height: 24px; }
-        
-        #stats-modal h2 { margin-top: 0; color: var(--hint-correct); font-size: 1.8rem;}
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin: 1.5rem 0; }
-        .stat-item h3 { margin: 0; font-size: 1.5rem; font-family: 'Inter', sans-serif; } 
-        .stat-item p { margin: 0; color: #aaa; font-size: 0.8rem;}
+
+        /* End Game Stats Modal */
+        #end-game-stats-modal h2 { margin-top: 0; color: var(--hint-correct); font-size: 1.8rem;}
+        .end-game-stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin: 1.5rem 0; }
+        .stat-item h3 { margin: 0; font-size: 1.5rem; font-family: 'Inter', sans-serif; }
+        .stat-item p { margin: 0.2rem 0 0 0; color: #aaa; font-size: 0.8rem;}
         .stat-item.total-score h3 {
             color: var(--hint-present);
             font-size: 2.2rem;
             font-weight: 700;
         }
         .modal-buttons { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;}
-        
+
+        /* Persistent Stats Modal Styles */
+        #persistent-stats-modal h2 { text-align: center; margin-top: 0; color: var(--selection-color);}
+        .persistent-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4 columns */
+            gap: 1rem;
+            margin: 1.5rem 0;
+            text-align: center;
+        }
+        .persistent-stat-item h3 {
+            margin: 0;
+            font-size: 1.8rem; /* Larger font */
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            color: var(--hint-present); /* Highlight number */
+        }
+        .persistent-stat-item p {
+            margin: 0.2rem 0 0 0;
+            color: #aaa;
+            font-size: 0.7rem; /* Smaller label */
+            line-height: 1;
+        }
+
         /* How to Play Styles */
         #help-modal { text-align: left; }
         #help-modal h2 { text-align: center; margin-top: 0; }
@@ -332,19 +372,18 @@
             font-weight: 700; font-size: 1rem;
             border-radius: 4px;
             color: #FFFFFF; /* All examples use white text for contrast */
-            font-family: 'Inter', sans-serif; 
+            font-family: 'Inter', sans-serif;
         }
         .example-tile.stem {
              border: 1px solid var(--selection-color);
-             width: 33px; height: 33px; 
+             width: 33px; height: 33px;
              background-color: var(--tile-bg);
              color: var(--text-color); /* Match theme text color */
         }
-         /* --- NEW: Full tile color examples --- */
         .example-tile.correct { background-color: var(--hint-correct); }
         .example-tile.present { background-color: var(--hint-present); }
         .example-tile.incorrect { background-color: var(--hint-incorrect); }
-        
+
         /* Settings Modal Styles */
         #settings-modal h2 { text-align: center; margin-top: 0; }
         .setting-row {
@@ -375,7 +414,7 @@
         }
         input:checked + .slider { background-color: var(--selection-color); }
         input:checked + .slider:before { transform: translateX(22px); }
-        
+
         /* Start Screen */
         #start-screen {
             position: fixed;
@@ -405,7 +444,6 @@
         .logo-leaf-alt { background-color: var(--hint-present); }
 
         #start-screen h1 { font-size: 3.5rem; }
-        /* Tagline Style */
         #tagline {
             font-family: 'Lora', serif; /* Use Lora serif font */
             font-size: 1rem;
@@ -418,27 +456,26 @@
         body.light-mode #tagline {
             color: #555; /* Darker tagline for light mode */
         }
-        
-        /* --- CONDENSED SOLUTION BOX --- */
+
         #solution-display {
-            margin-top: 1rem; 
+            margin-top: 1rem;
             padding: 0.5rem 1rem; /* Condensed padding */
             background-color: var(--tile-bg);
-            border-radius: 8px; 
-            display: none; 
+            border-radius: 8px;
+            display: none;
             font-family: monospace;
             white-space: pre-line; /* Allows wrapping */
-            text-align: left; 
+            text-align: left;
             border: 1px solid var(--border-color);
             font-size: 0.8rem; /* Smaller font */
             line-height: 1.3; /* Tighter line height */
             max-height: none; /* Remove fixed height */
         }
-        #solution-display h3 { 
+        #solution-display h3 {
             margin-top: 0.25rem; /* Tighter margin */
             margin-bottom: 0.25rem; /* Tighter margin */
-            color: var(--hint-present); 
-            text-align: center; 
+            color: var(--hint-present);
+            text-align: center;
         }
     </style>
 </head>
@@ -447,36 +484,23 @@
     <!-- START SCREEN -->
     <div id="start-screen">
         <div class="start-logo">
-            <div class="logo-tile"></div>
-            <div class="logo-tile logo-stem"></div>
-            <div class="logo-tile logo-leaf"></div>
-            <div class="logo-tile logo-leaf-alt"></div>
-            <div class="logo-tile logo-stem"></div>
-            <div class="logo-tile"></div>
-            <div class="logo-tile"></div>
-            <div class="logo-tile logo-stem"></div>
-            <div class="logo-tile logo-leaf"></div>
+            <div class="logo-tile"></div><div class="logo-tile logo-stem"></div><div class="logo-tile logo-leaf"></div>
+            <div class="logo-tile logo-leaf-alt"></div><div class="logo-tile logo-stem"></div><div class="logo-tile"></div>
+            <div class="logo-tile"></div><div class="logo-tile logo-stem"></div><div class="logo-tile logo-leaf"></div>
         </div>
         <h1>Trellis</h1>
-        <p id="tagline"></p> <!-- Tagline added here -->
-        <button id="play-btn">Play</button>
+        <p id="tagline"></p>
+        <button id="play-btn">Play Daily</button>
     </div>
 
     <div class="game-container">
         <div class="header-controls">
-            <button class="icon-btn" id="help-btn" aria-label="How to play">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            </button>
+            <button class="icon-btn" id="help-btn" aria-label="How to play"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></button>
+            <button class="icon-btn" id="persistent-stats-btn" aria-label="Statistics"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20v-6M6 20V10M18 20V4"></path></svg></button>
             <div class="check-lights" id="check-lights"></div>
             <button id="check-btn">Check</button>
-            <!-- NEW MOVE COUNTER IN HEADER -->
-            <div id="header-move-counter">
-                <span>Moves</span>
-                <span id="move-count-text">0</span>
-            </div>
-            <button class="icon-btn" id="settings-btn" aria-label="Settings">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-            </button>
+            <div id="header-move-counter"><span>Moves</span><span id="move-count-text">0</span></div>
+            <button class="icon-btn" id="settings-btn" aria-label="Settings"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
         </div>
         <div class="main-area">
             <div class="puzzle-grid" id="puzzle-grid"></div>
@@ -484,77 +508,60 @@
         </div>
         <div id="message-area"></div>
 
-        <div id="stats-modal-overlay" class="modal-overlay">
-            <div id="stats-modal" class="modal-box">
-                 <button class="icon-btn modal-close-btn" id="close-stats-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
+        <!-- End Game Stats Modal -->
+        <div id="end-game-stats-modal-overlay" class="modal-overlay">
+            <div id="end-game-stats-modal" class="modal-box">
+                 <button class="icon-btn modal-close-btn" id="close-end-game-stats-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                 <h2 id="modal-title">Puzzle Solved!</h2>
-                <div class="stats-grid">
+                <div class="end-game-stats-grid">
                     <div class="stat-item"><h3 id="final-time">--:--</h3><p>Time</p></div>
                     <div class="stat-item"><h3 id="final-moves">--</h3><p>Moves</p></div>
                     <div class="stat-item"><h3 id="move-bonus">0</h3><p>Move Bonus</p></div>
                     <div class="stat-item"><h3 id="first-try-bonus">0</h3><p>First Try Bonus</p></div>
                     <div class="stat-item"><h3 id="check-bonus">0</h3><p>Checks Remaining Bonus</p></div>
-                    <div class="stat-item total-score">
-                        <h3 id="final-score">0</h3>
-                        <p>Total Score</p>
-                    </div>
+                    <div class="stat-item total-score"><h3 id="final-score">0</h3><p>Total Score</p></div>
                 </div>
                 <div class="modal-buttons">
-                    <button id="replay-btn">Play Again</button>
+                    <button id="practice-btn">Practice</button>
                     <button id="share-btn">Share</button>
                 </div>
             </div>
         </div>
-        
+
+        <!-- Persistent Stats Modal -->
+        <div id="persistent-stats-modal-overlay" class="modal-overlay">
+            <div id="persistent-stats-modal" class="modal-box">
+                <button class="icon-btn modal-close-btn" id="close-persistent-stats-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                <h2>Statistics</h2>
+                <div class="persistent-stats-grid">
+                    <div class="persistent-stat-item"><h3 id="stats-played">0</h3><p>Played</p></div>
+                    <div class="persistent-stat-item"><h3 id="stats-win-pct">0</h3><p>Win %</p></div>
+                    <div class="persistent-stat-item"><h3 id="stats-streak">0</h3><p>Current Streak</p></div>
+                    <div class="persistent-stat-item"><h3 id="stats-max-streak">0</h3><p>Max Streak</p></div>
+                </div>
+            </div>
+        </div>
+
         <!-- How to Play Modal -->
         <div id="help-modal-overlay" class="modal-overlay">
             <div id="help-modal" class="modal-box">
-                <button class="icon-btn modal-close-btn" id="close-help-btn">
-                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
+                <button class="icon-btn modal-close-btn" id="close-help-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                 <h2>How To Play</h2>
                 <p>Use the letters from the tray to complete the words on the trellis.</p>
                 <p>The central letters are part of the word. The word can be 4 letters long, and the stem letter can be in any position.</p>
-                <div class="example-row">
-                    <div class="example-tile correct">W</div>
-                    <div class="example-tile stem">A</div>
-                    <div class="example-tile correct">L</div>
-                    <div class="example-tile correct">L</div>
-                </div>
-                <p><b>Green:</b> Correct letter in the correct spot.</p>
-                <div class="example-row">
-                    <div class="example-tile present">L</div>
-                    <div class="example-tile stem">O</div>
-                    <div class="example-tile incorrect">S</div>
-                    <div class="example-tile present">T</div>
-                </div>
-                <p><b>Orange:</b> Correct letter in the wrong spot.</p>
-                <div class="example-row">
-                    <div class="example-tile incorrect">B</div>
-                    <div class="example-tile stem">R</div>
-                    <div class="example-tile incorrect">I</div>
-                    <div class="example-tile incorrect">G</div>
-                </div>
-                <p><b>Red:</b> Letter is not in the word.</p>
+                <div class="example-row"><div class="example-tile correct">W</div><div class="example-tile stem">A</div><div class="example-tile correct">L</div><div class="example-tile correct">L</div></div><p><b>Green:</b> Correct letter in the correct spot.</p>
+                <div class="example-row"><div class="example-tile present">L</div><div class="example-tile stem">O</div><div class="example-tile incorrect">S</div><div class="example-tile present">T</div></div><p><b>Orange:</b> Correct letter in the wrong spot.</p>
+                <div class="example-row"><div class="example-tile incorrect">B</div><div class="example-tile stem">R</div><div class="example-tile incorrect">I</div><div class="example-tile incorrect">G</div></div><p><b>Red:</b> Letter is not in the word.</p>
             </div>
         </div>
 
         <!-- Settings Modal -->
         <div id="settings-modal-overlay" class="modal-overlay">
              <div id="settings-modal" class="modal-box">
-                 <button class="icon-btn modal-close-btn" id="close-settings-btn">
-                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                 </button>
+                 <button class="icon-btn modal-close-btn" id="close-settings-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                 <h2>Settings</h2>
-                <div class="setting-row">
-                    <p>Dark Mode</p>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="theme-toggle" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
+                <div class="setting-row"><p>Dark Mode</p><label class="toggle-switch"><input type="checkbox" id="theme-toggle" checked><span class="slider"></span></label></div>
+                 <div class="setting-row"><p>Reset Daily Puzzle</p><button id="reset-daily-btn" style="background-color: var(--hint-incorrect); color: white; border: none; padding: 0.5rem; border-radius: 4px; cursor: pointer;">Reset Progress</button></div>
             </div>
         </div>
 
@@ -567,204 +574,105 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- 4-LETTER WORD DICTIONARY ---
-        const ALL_WORDS = ["ABLE", "ACID", "AGED", "ALSO", "AREA", "ARMY", "AWAY", "BABY", "BACK", "BALL", "BAND", "BANK", "BASE", "BATH", "BEAR", "BEAT", "BEEN", "BELL", "BELT", "BEST", "BILL", "BIRD", "BLOW", "BLUE", "BOAT", "BODY", "BOMB", "BOND", "BONE", "BOOK", "BOOM", "BORN", "BOSS", "BOTH", "BOWL", "BULK", "BURN", "BUSH", "BUSY", "CAGE", "CAKE", "CALL", "CALM", "CAME", "CAMP", "CARD", "CARE", "CASE", "CASH", "CAST", "CELL", "CENT", "CHAT", "CHIP", "CITY", "CLUB", "COAL", "COAT", "CODE", "COLD", "COME", "COOK", "COOL", "COPY", "CORD", "CORE", "CORN", "COST", "CREW", "CROP", "DARK", "DATA", "DATE", "DAWN", "DAYS", "DEAD", "DEAL", "DEAR", "DEBT", "DECK", "DEEP", "DEER", "DESK", "DIAL", "DICE", "DIET", "DIRT", "DISK", "DOES", "DONE", "DOOR", "DOSE", "DOWN", "DRAW", "DREW", "DROP", "DRUG", "DRUM", "DUCK", "DUEL", "DUKE", "DUST", "DUTY", "EACH", "EARL", "EARN", "EASE", "EAST", "EASY", "EDGE", "ELSE", "EVEN", "EVER", "EVIL", "EXIT", "FACE", "FACT", "FAIL", "FAIR", "FALL", "FARM", "FAST", "FATE", "FEAR", "FEED", "FEEL", "FEET", "FELL", "FELT", "FILE", "FILL", "FILM", "FIND", "FINE", "FIRE", "FIRM", "FISH", "FIVE", "FLAG", "FLAT", "FLOW", "FOOD", "FOOT", "FORD", "FORM", "FORT", "FOUR", "FREE", "FROM", "FUEL", "FULL", "FUND", "GAIN", "GAME", "GANG", "GATE", "GAVE", "GEAR", "GENE", "GIFT", "GIRL", "GIVE", "GLAD", "GOAL", "GOES", "GOLD", "GONE", "GOOD", "GRAY", "GREW", "GROW", "GULF", "HAIR", "HALF", "HALL", "HAND", "HANG", "HARD", "HARM", "HATE", "HAVE", "HEAD", "HEAR", "HEAT", "HELD", "HELL", "HELP", "HERE", "HERO", "HIGH", "HILL", "HIRE", "HOLD", "HOLE", "HOLY", "HOME", "HOPE", "HOUR", "HUGE", "HUNG", "HUNT", "HURT", "IDEA", "IDLE", "INCH", "INTO", "IRON", "ITEM", "JOIN", "JOKE", "JUMP", "JUST", "KEEN", "KEEP", "KEPT", "KICK", "KILL", "KIND", "KING", "KNEE", "KNEW", "KNOW", "LACK", "LADY", "LAID", "LAKE", "LAMB", "LAMP", "LAND", "LANE", "LAST", "LATE", "LAZY", "LEAD", "LEAF", "LEFT", "LEND", "LENT", "LESS", "LIFE", "LIFT", "LIKE", "LINE", "LINK", "LIST", "LIVE", "LOAD", "LOAN", "LOCK", "LONG", "LOOK", "LORD", "LOSE", "LOSS", "LOST", "LOUD", "LOVE", "LOW", "LUCK", "LUNG", "MADE", "MAIL", "MAIN", "MAKE", "MALE", "MANY", "MARK", "MASS", "MEAL", "MEAN", "MEAT", "MEET", "MENU", "MILE", "MILK", "MILL", "MIND", "MINE", "MISS", "MODE", "MOOD", "MOON", "MORE", "MOST", "MOVE", "MUCH", "MUST", "NAME", "NAVY", "NEAR", "NECK", "NEED", "NEWS", "NEXT", "NICE", "NINE", "NONE", "NOON", "NORM", "NOSE", "NOTE", "NOUN", "ONCE", "ONLY", "ONTO", "OPEN", "ORAL", "OVER", "PACE", "PACK", "PAGE", "PAID", "PAIN", "PAIR", "PALM", "PARK", "PART", "PASS", "PAST", "PATH", "PAY", "PEAK", "PICK", "PILE", "PINK", "PIPE", "PLAN", "PLAY", "PLOT", "PLUG", "PLUS", "POEM", "POET", "POLE", "POLL", "POOL", "POOR", "PORT", "POST", "PULL", "PURE", "PUSH", "RACE", "RAIL", "RAIN", "RANK", "RARE", "RATE", "READ", "REAL", "REAR", "RELY", "RENT", "REST", "RICE", "RICH", "RIDE", "RING", "RISE", "RISK", "ROAD", "ROCK", "ROLE", "ROLL", "ROOF", "ROOM", "ROOT", "ROPE", "ROSE", "ROUGH", "ROUND", "ROW", "RULE", "RUSH", "SAFE", "SAGE", "SAID", "SAIL", "SALE", "SALT", "SAME", "SAND", "SAVE", "SAY", "SEAT", "SEED", "SEEK", "SEEM", "SEEN", "SELF", "SELL", "SEND", "SENT", "SHIP", "SHOE", "SHOP", "SHOT", "SHOW", "SICK", "SIDE", "SIGN", "SILK", "SING", "SIT", "SITE", "SIZE", "SKIN", "SLIP", "SLOW", "SNOW", "SOFT", "SOIL", "SOLD", "SOLE", "SOME", "SONG", "SOON", "SORT", "SOUL", "SPOT", "STAR", "STAY", "STEP", "STOP", "SUCH", "SUIT", "SUM", "SUN", "SURE", "TAKE", "TALE", "TALK", "TALL", "TANK", "TAPE", "TASK", "TEAM", "TEAR", "TELL", "TEND", "TENT", "TERM", "TEST", "TEXT", "THAN", "THAT", "THEM", "THEN", "THIN", "THIS", "THUS", "TIDE", "TIDY", "TIE", "TILE", "TIME", "TINY", "TIRE", "TOE", "TONE", "TOOK", "TOOL", "TOUR", "TOWN", "TRAP", "TREE", "TRIP", "TRUE", "TUNE", "TURN", "TWIN", "TYPE", "UNIT", "UPON", "USED", "USER", "VAST", "VERY", "VIEW", "VOTE", "WAGE", "WAIT", "WAKE", "WALK", "WALL", "WANT", "WARM", "WARN", "WASH", "WAVE", "WEAK", "WEAR", "WEEK", "WELL", "WENT", "WERE", "WEST", "WHAT", "WHEN", "WHIP", "WIDE", "WIFE", "WILD", "WILL", "WIND", "WINE", "WING", "WIRE", "WISE", "WISH", "WITH", "WOOD", "WOOL", "WORD", "WORK", "YARD", "YEAR", "YOUR", "ZERO", "ZONE"];
-        
-        // --- 7-LETTER STEM WORDS (EXPANDED) ---
-        const STEM_WORDS = [
-"ACCOUNT","ACQUIRE","ADVANCE","ADVISOR","AIRPORT","AMAZING","ANALYST","ANOTHER",
-"BALANCE","BARGAIN","BEAUTY","BETWEEN","BLOSSOM","BROTHER","CAPTAIN","CAPTURE",
-"CARRIER","CENTURY","CHARTER","COMPANY","COMPETE","CONCEPT","CONDUCT","CONSOLE",
-"CONVERT","COUNTRY","COURAGE","CREATOR","CRIMSON","CRYSTAL","CUSTOMS","DANGER",
-"DEALERS","DECIDED","DEFENCE","DELIGHT","DEMANDS","DESTINY","DISCUSS","DISPLAY",
-"DOLPHIN","ELEGANT","EMOTION","EXAMPLE","FACTORY","FAMILY","FANTASY","FASHION",
-"FAVOURS","FEATHER","FOREIGN","FORWARD","FORTUNE","FRIENDS","GARMENT","GENERIC",
-"GLITTER","GOVERN","GRACEFUL","GRAPHIC","HABITAT","HARVEST","HISTORY","HONESTY",
-"HORIZON","IMAGINE","INSIGHT","JOURNEY","JUSTIFY","KINGDOM","LANGUOR","LAWYERS",
-"LEAGUES","LIBRARY","LOVELYN","MACHINE","MAGICAL","MANNERS","MEADOWS","MEASURE",
-"MENTION","MILLION","MISSION","MOMENTS","MOUNAIN","MYSTERY","NATURAL","NETWORK",
-"NIMBLE","NOTHING","OFFICER","ORCHARD","OUTCOME","OVERLAP","PASSION","PATIENT",
-"PAYMENT","PHOENIX","PICTURE","PLASTIC","POPULAR","POSSUMS","PRECISE","PRESENT",
-"PRINCES","PROCESS","PROGRAM","PROMISE","PROTECT","QUALITY","QUANTUM","RANDOMS",
-"REALITY","REFLECT","REGIONS","REMOVED","RESPECT","REWRITE","ROMANCE","SCIENCE",
-"SECRETS","SERENES","SERVICE","SHADOWS","SHAPING","SILENCE","SINCERE","SMOOTHY",
-"SPARKLE","SPECIAL","STATION","STORAGE","STUDENT","SUCCESS","SUPPORT","SURVIVE",
-"SYMBOLS","TACTICS","TEACHER","TENSION","TEXTURE","THEATRE","THUNDER","TITANIC",
-"TRIANGLE","UNCOVER","UNKNOWN","UPGRADE","VARIETY","VIBRANT","VICTORY","VOYAGER",
-"WAITING","WARRIOR","WHISPER","WITHOUT","WORKING","WRITING","ZEPHYRS"
-];
-        
-        // --- NEW TAGLINE LIST ---
-        const TAGLINES = [
-            "'I am' is the shortest complete sentence.",
-            "The dot over the 'i' is called a tittle.",
-            "'Bookkeeper' has three consecutive double letters.",
-            "A new word is added to the dictionary every two hours.",
-            "The most common letter is 'E'.",
-            "The least common letter is 'Z'.",
-            "'Stewardesses' is the longest word typed with only the left hand.",
-            "'Dreamt' is the only word that ends in 'mt'.",
-            "A pangram contains every letter of the alphabet.",
-            "'Almost' is the longest word with letters in alphabetical order.",
-            "The oldest English word is 'town'.",
-            "'Queue' sounds the same even if you remove the last four letters.",
-            "'Four' is the only number whose letters are in alphabetical order.",
-            "'One' is the only one in reverse alphabetical order.",
-            "A word with no vowels is a 'glyph'.",
-            "'Uncopyrightable' is a long word with no repeating letters.",
-            "A 'contronym' is a word with two opposite meanings (e.g. 'cleave').",
-            "'Underground' begins and ends with 'und'.",
-            "The longest one-syllable word is 'screeched'.",
-            "'Rhythm' is the longest word without a, e, i, o, or u.",
-            "A 'palindrome' reads the same forwards and backwards.",
-            "Shakespeare invented over 1,700 words.",
-            "'Goddessship' is the only word with a triple letter.",
-            "The 'Q' in 'QWERTY' is almost always followed by a 'U'.",
-            "'Abstemious' contains all five vowels in order.",
-            "A 'portmanteau' blends two words (e.g. 'smog').",
-            "'Subbookkeeper' has four pairs of double letters.",
-            "The longest word in English has 45 letters.",
-            "What seven-letter word has three 'U's? 'Triumphs'?",
-            "No, the seven-letter word with three 'U's is 'unusual'.",
-            "A 'ghost word' is a word that appeared in a dictionary by error.",
-            "'Therein' contains seven words without rearranging letters.",
-            "'Indivisibility' has only one vowel, repeated six times.",
-            "The word 'set' has the most definitions.",
-            "'Go' is the shortest complete sentence.",
-            "There are words that only exist in plural form, like 'scissors'.",
-            "'Listen' and 'silent' use the same letters.",
-            "The sixth sick sheik's sixth sheep's sick.",
-            "The past tense of 'yeet' is 'yote'. Maybe.",
-            "To 'plenish' is the opposite of 'replenish'.",
-            "A 'jiffy' is an actual unit of time (1/100th of a second).",
-            "'Month', 'orange', 'silver', 'purple'... do not rhyme.",
-            "'Spoonfeed' is the longest word with letters in reverse alphabetical order.",
-            "The shortest '-ology' (study of) is 'oology' (study of eggs).",
-            "'Iouea' is a sea sponge and has all 5 vowels.",
-            "A 'Trellis' is a framework for supporting plants.",
-            "We think 'Trellis' is a better name than 'WordGrid'.",
-            "What's another word for 'Thesaurus'?",
-            "A 'crwth' is a Welsh instrument without vowels.",
-            "'Book' and 'read' are four-letter words."
-        ];
-        
+
+        const ALL_WORDS = ["ABLE","ACID","AGED","ALSO","AQUA","AREA","ARMY","AWAY","BABY","BACK","BAIL","BAIT","BALD","BALL","BALM","BAND","BANK","BARK","BARN","BASE","BASH","BASK","BATH","BEAD","BEAK","BEAM","BEAN","BEAR","BEAT","BEEF","BEEN","BEEP","BEER","BEET","BELL","BELT","BEND","BENT","BEST","BIKE","BILL","BIND","BIRD","BITE","BLEW","BLOB","BLOT","BLUE","BOAR","BOAT","BODY","BOIL","BOLD","BOLT","BOMB","BONE","BOOK","BOOM","BOOT","BORE","BORN","BOSS","BOTH","BOWL","BRED","BREW","BRIM","BUCK","BULB","BULK","BUMP","BUNK","BUOY","BURN","BURY","BUSH","BUSY","CAFE","CAGE","CAKE","CALF","CALL","CALM","CAME","CAMP","CANE","CAPE","CARB","CARD","CARE","CARP","CART","CASE","CASH","CASK","CAST","CELL","CENT","CHAT","CHIC","CHIN","CHIP","CHUM","CITE","CITY","CLAM","CLAN","CLAP","CLAW","CLAY","CLIP","CLOG","CLOT","CLUB","COAL","COAT","COCO","CODA","CODE","COIL","COIN","COKE","COLA","COLD","COMB","COME","CONE","COOK","COOL","COOP","COPY","CORD","CORE","CORK","CORN","COST","COVE","COZY","CRAB","CREW","CRIB","CROP","CROW","CULT","CURB","CURD","CURE","CURL","DAFT","DAME","DAMP","DANK","DARE","DARK","DART","DASH","DATA","DATE","DAWN","DAYS","DAZE","DEAD","DEAF","DEAL","DEAR","DEBT","DECK","DEED","DEEM","DEEP","DEER","DEFY","DELI","DENY","DESK","DIAL","DICE","DIET","DIRT","DISK","DOES","DOLE","DOME","DONE","DOOM","DOOR","DOSE","DOTE","DOWN","DOZE","DRAB","DRAG","DRAW","DREW","DROP","DRUG","DRUM","DUCK","DUEL","DUET","DUKE","DULL","DUNK","DUSK","DUST","DUTY","EACH","EARL","EARN","EASE","EAST","EASY","ECHO","EDGE","EDIT","ELSE","EVEN","EVER","EVIL","EXIT","FACE","FACT","FAIL","FAIR","FALL","FARM","FAST","FATE","FEAR","FEED","FEEL","FEET","FELL","FELT","FILE","FILL","FILM","FIND","FINE","FIRE","FIRM","FISH","FIVE","FLAG","FLAT","FLEW","FLIP","FLOW","FOAL","FOAM","FOIL","FOLD","FOLK","FOOD","FOOT","FORK","FORM","FORT","FOUR","FREE","FROM","FUEL","FULL","FUND","GAIN","GAME","GANG","GATE","GAVE","GEAR","GEEK","GENE","GIFT","GIRL","GIVE","GLAD","GOAL","GOAT","GOES","GOLD","GOLF","GONE","GOOD","GORE","GORY","GOUT","GOWN","GREW","GREY","GRID","GRIM","GRIN","GRIP","GROW","GULF","GUSH","GUST","HAIL","HAIR","HALF","HALL","HALO","HALT","HAND","HANG","HARD","HARM","HATE","HAVE","HAWK","HAZE","HAZY","HEAD","HEAL","HEAP","HEAR","HEAT","HEEL","HEIR","HELD","HELP","HERB","HERD","HERE","HERO","HIGH","HIKE","HILL","HINT","HIRE","HISS","HIVE","HOAX","HOLD","HOLE","HOLY","HOME","HONE","HOOF","HOOK","HOOP","HOPE","HORN","HOSE","HOST","HOUR","HUGE","HULK","HULL","HUNG","HUNT","HURT","IDEA","IDLE","IDOL","INCH","INTO","IRON","ITEM","JAIL","JADE","JAWS","JAZZ","JEEP","JELL","JERK","JEST","JINX","JOIN","JOKE","JOLT","JUMP","JUNK","JURY","JUST","KEEN","KEEP","KELP","KEPT","KICK","KILL","KIND","KING","KISS","KITE","KNEE","KNEW","KNOW","LACE","LACK","LADY","LAID","LAKE","LAMB","LAMP","LAND","LANE","LARK","LAST","LATE","LAVA","LAZY","LEAD","LEAF","LEAK","LEAN","LEAP","LEFT","LEND","LENT","LESS","LIFE","LIFT","LIKE","LIME","LINE","LINK","LINT","LION","LIST","LIVE","LOAD","LOAF","LOAN","LOCK","LOFT","LOGO","LONG","LOOK","LOOM","LOOP","LOOT","LORD","LOSE","LOSS","LOST","LOUD","LOVE","LUCK","LULL","LUMP","LUNG","LURE","LURK","LUSH","MADE","MAIL","MAIN","MAKE","MALE","MALL","MALT","MANE","MANY","MARK","MARS","MASK","MASS","MAST","MATE","MAUL","MAZE","MEAL","MEAN","MEAT","MEET","MELT","MEMO","MEND","MENU","MEOW","MESH","MESS","MILE","MILK","MILL","MIND","MINE","MINT","MISS","MIST","MITE","MOAN","MOAT","MODE","MOOD","MOON","MOOR","MOPE","MORE","MORN","MOST","MOTH","MOVE","MUCH","MUCK","MUDD","MUFF","MULE","MULL","MUST","MUTE","MUTT","MYTH","NAIL","NAME","NAVY","NEAR","NEAT","NECK","NEED","NERD","NEST","NEWS","NEXT","NICE","NIGH","NINE","NONE","NOOK","NOON","NORM","NOSE","NOTE","NOUN","NUDE","NUKE","NULL","NUMB","OATH","OATS","ODOR","OGRE","OILY","OINK","OKAY","OMEN","OMIT","ONCE","ONLY","ONTO","OOZE","OPEN","ORAL","OUCH","OUST","OVER","OWED","OWES","PACE","PACK","PAGE","PAID","PAIL","PAIN","PAIR","PALE","PALM","PANS","PANT","PAPA","PARK","PART","PASS","PAST","PATH","PAVE","PAWN","PEAK","PEAL","PEAR","PEAT","PECK","PEEK","PEEL","PEEP","PEER","PELT","PENT","PERK","PEST","PETS","PHEW","PICK","PILE","PILL","PIMP","PINE","PINK","PINT","PIPE","PITH","PIXY","PLAN","PLAY","PLEA","PLED","PLOT","PLOW","PLUG","PLUM","PLUS","POEM","POET","POKE","POKY","POLE","POLL","POLO","POND","PONY","POOL","POOR","POOF","POPE","PORK","PORT","POSE","POSH","POST","POUT","PRAY","PREP","PREY","PRIM","PROD","PROM","PROP","PROW","PUFF","PUKE","PULL","PULP","PUMA","PUMP","PUNK","PUNT","PUNY","PURE","PUSH","PUTT","PYRE","QUAD","QUAIL","QUAY","QUID","QUIP","QUIT","QUIZ","RACE","RACK","RAFT","RAGE","RAID","RAIL","RAIN","RAKE","RAMP","RANK","RANT","RARE","RASH","RATE","RAVE","RAYS","RAZE","READ","REAL","REAP","REAR","REEF","REEK","REEL","REIN","RELY","RENT","REST","RICE","RICH","RIDE","RIFT","RIND","RING","RINK","RINSE","RIPE","RISE","RISK","ROAD","ROAM","ROAR","ROBE","ROCK","RODE","ROLE","ROLL","ROOF","ROOM","ROOT","ROPE","ROSE","ROSY","ROTO","ROUT","ROVE","RUDE","RUIN","RULE","RUNG","RUNT","RUSE","RUSH","RUSK","RUST","RUTH","SACK","SAFE","SAGA","SAGE","SAGO","SAID","SAIL","SALE","SALT","SAME","SAND","SANE","SANK","SARI","SASH","SAWN","SCAB","SCAM","SCAN","SCAR","SCAT","SCOT","SCOW","SCUM","SEAL","SEAM","SEAR","SEAT","SECT","SEED","SEEK","SEEM","SEEN","SELF","SELL","SEND","SENT","SEPT","SERF","SETS","SEWN","SHAD","SHAG","SHAM","SHED","SHIN","SHIP","SHOE","SHOP","SHOT","SHOW","SHUN","SHUT","SICK","SIDE","SIFT","SIGN","SILK","SILL","SILO","SILT","SING","SINK","SITE","SIZE","SKEW","SKID","SKIM","SKIN","SKIP","SKIT","SLAB","SLAG","SLAM","SLAP","SLAT","SLAW","SLED","SLEW","SLID","SLIM","SLIP","SLIT","SLOB","SLOE","SLOG","SLOP","SLOT","SLOW","SLUG","SLUM","SLUR","SMOG","SMUG","SNAG","SNAP","SNIP","SNIT","SNOB","SNOW","SNUB","SNUG","SOAK","SOAP","SOAR","SOCK","SODA","SOFA","SOFT","SOIL","SOLD","SOLE","SOLO","SOME","SONG","SOON","SOOT","SORE","SORT","SOUL","SOUR","SOW","SPAM","SPAN","SPAR","SPAT","SPAY","SPEC","SPED","SPEW","SPIN","SPIT","SPOT","SPRY","SPUD","SPUN","SPUR","STAB","STAG","STAR","STAT","STAY","STEM","STEP","STEW","STIR","STOP","STOW","STUB","STUD","STUN","SUCH","SUCK","SUDS","SUIT","SULK","SUNK","SUNS","SURF","SUSHI","SWAB","SWAG","SWAM","SWAN","SWAP","SWAT","SWAY","SWIG","SWIM","SWUM","SYNC","TABS","TACO","TACT","TAIL","TAKE","TALC","TALE","TALK","TALL","TAME","TAMP","TANK","TAPE","TASK","TAUT","TAXI","TEAK","TEAL","TEAM","TEAR","TEAS","TEEN","TELL","TEND","TENT","TERM","TEST","TEXT","THAN","THAT","THAW","THEM","THEN","THIN","THIS","THUD","THUG","THUS","TICK","TIDE","TIDY","TIER","TIFF","TILE","TILT","TIME","TINT","TINY","TIRE","TOAD","TOGA","TOIL","TOLD","TOLL","TONE","TONG","TONS","TOOK","TOOL","TOOT","TORE","TORN","TOTE","TOUR","TOWN","TRAP","TRAY","TREE","TREK","TRIP","TROT","TRUE","TUBA","TUBE","TUCK","TUFT","TUNA","TUNE","TURF","TURK","TURN","TUSK","TUTU","TWEE","TWIG","TWIN","TWIT","TYPE","UNDO","UNIT","UPON","USED","USER","USES","VANE","VASE","VAST","VAULT","VEAL","VEIL","VEIN","VEND","VENT","VERY","VEST","VETO","VEXT","VIAL","VICE","VIEW","VINE","VISA","VISE","VOID","VOLT","VOTE","VOWS","WACK","WADE","WAFT","WAGE","WAIF","WAIL","WAIST","WAIT","WAKE","WALK","WALL","WAND","WANE","WANT","WARM","WARN","WARP","WARY","WASH","WASP","WAXY","WEAK","WEAL","WEAN","WEAR","WEED","WEEK","WEEP","WELD","WELL","WENT","WERE","WEST","WHAT","WHEN","WHIP","WIDE","WIFE","WILD","WILL","WILT","WILY","WIMP","WIND","WINE","WING","WINK","WINO","WIPE","WIRE","WIRY","WISE","WISH","WISP","WITH","WOKE","WOLF","WOMB","WONK","WOOD","WOOF","WOOL","WORD","WORE","WORK","WORM","WORN","WRAP","WREN","YANK","YYARD","YARN","YAWN","YEAR","YELL","YELP","YETI","YOGA","YOKE","YOLK","YORE","YOUR","ZANY","ZEAL","ZERO","ZEST","ZINC","ZING","ZIPS","ZONE","ZOOM"];
+        // --- UPDATED STEM_WORDS list - strictly 7 letters ---
+        const STEM_WORDS = ["ABILITY","ABOLISH","ACADEMY","ACQUIRE","ADVANCE","ADVERSE","AFFECTS","AMAZING","ANALYZE","ANCIENT","ANOTHER","ANXIETY","ANYBODY","APPEARS","APPROVE","ARRANGE","ARRIVAL","ARTICLE","BALANCE","BALLOON","BARRIER","BECOMES","BETWEEN","BICYCLE","BIGGEST","BILLION","BLANKET","BROTHER","BUTTONS","CAPABLE","CAPITAL","CAPTAIN","CAPTURE","CAREFUL","CAREERS","CENTRAL","CENTURY","CERTAIN","CHAMBER","CHANNEL","CHARITY","CHICKEN","CITIZEN","CLASSIC","CLIMATE","CLOTHES","COLLECT","COLLEGE","COMBINE","COMMAND","COMMENT","COMPANY","COMPETE","COMPLETE","COMPLEX","CONCEPT","CONCERT","CONDUCT","CONFIRM","CONNECT","CONSIST","CONTACT","CONTAIN","CONVERT","CORRECT","COUNTRY","COUPLES","COURAGE","COURSES","CULTURE","CURRENT","CURTAIN","DECIDED","DECLINE","DELIVER","DEMANDS","DEPOSIT","DESERVE","DESIGNS","DETAILS","DEVELOP","DIAMOND","DIGITAL","DIRECTS","DISMISS","DISPLAY","DISTANT","DOCTORS","DOLLARS","EDITION","EDUCATE","EFFECTS","EFFORTS","ELEMENT","EMOTION","ENABLED","ENGLAND","ENJOYED","ENOUGH","ENTERED","EXAMPLE","EXCITED","EXERCISE","EXPLORE","EXTENDS","EXTREME","FACTORY","FAILURE","FEATURE","FEDERAL","FEELING","FIGURED","FINALLY","FINANCE","FISHING","FLOWERS","FOREIGN","FOREVER","FORGIVE","FORMULA","FORTUNE","FORWARD","FRIENDS","FURTHER","FUTURES","GALLERY","GENERAL","GENUINE","GRANTED","GREATEST","GROUND","GUARANT","HAPPENS","HEALTHY","HEARING","HEAVILY","HISTORY","HONESTY","HUNDRED","HUSBAND","ILLNESS","IMAGINE","IMPROVE","INCLUDE","INITIAL","INSIDER","INSPIRE","INSTALL","INSTEAD","INTENSE","INVOLVE","ISLANDS","JEALOUS","JOURNEY","JUSTICE","KITCHEN","LARGELY","LAWYERS","LEADERS","LEARNED","LIBRARY","LIMITED","LISTENS","MANAGER","MARRIED","MARKETS","MEANING","MEETING","MEMBERS","MENTION","MESSAGE","METHODS","MILLION","MINERAL","MINUTES","MISSING","MISSION","MISTAKE","MIXTURE","MOMENTS","MONDAYS","MORNING","MOUNTAIN","MUSICAL","NATURAL","NATURES","NETWORK","NOTHING","NUMBERS","OFFENCE","OFFERED","OFFICER","OFFLINE","OPERATE","OPINION","OPPOSED","ORGANIC","OUTCOME","OUTDOOR","OUTSIDE","PACKAGE","PAINTER","PATIENT","PATTERN","PERCENT","PERFECT","PERFORM","PERHAPS","PHYSICS","PICTURE","PLANNER","PLASTIC","PLAYERS","POPULAR","PORTION","POSSESS","POSSIBL","PRACTIC","PREPARE","PRESENT","PREVENT","PRIMARY","PRIVATE","PROBLEM","PROCESS","PRODUCE","PRODUCT","PROFILE","PROGRAM","PROJECT","PROMOTE","PROTECT","PROTEST","PROVIDE","QUALITY","QUARTER","QUIETLY","REACHED","READERS","READING","RECEIVE","RECIPES","RECORDS","RECOVER","REFLECT","REFUSED","REGIONS","REGULAR","RELAXED","RELEASE","REMOVES","REPORTS","REQUEST","REQUIRE","RESPECT","RESPOND","RESULTS","RETIRED","RETURN","REVENGE","REVIEWS","ROMANCE","ROUTINE","RUNNING","SAVINGS","SCHOOLS","SCIENCE","SECTION","SENATOR","SENIORS","SERVANT","SERVICE","SETTING","SETTLED","SEVERAL","SHELTER","SHORTLY","SHOWING","SINCERE","SINGERS","SITTING","SOCIETY","SOMEONE","SPECIAL","SPEAKER","SPECIES","SPONSOR","STATION","STAYING","STORAGE","STORIES","STUDENT","STUDIES","SUBJECT","SUCCEED","SUCCESS","SUGGEST","SUMMARY","SURFACE","SURVIVE","SYMBOLS","SYSTEMS","TEACHER","TEACHES","TENSION","TERRAIN","TESTING","THEATRE","THINKER","THOUGHT","THROUGH","TONIGHT","TOURIST","TRAFFIC","TRAINED","TRANSFER","TREATED","TRIANGLE","TRUSTED","TURNING","TYPICAL","UNCLEAR","UNKNOWN","UNUSUAL","UPGRADE","UTILITY","VARIETY","VARIOUS","VETERAN","VICTORY","VILLAGE","VIOLENT","VIRTUAL","VISIBLE","VISIONS","VISITOR","WAITING","WALKING","WARNING","WASHING","WEALTHY","WEATHER","WEEKEND","WELFARE","WESTERN","WHEREAS","WHETHER","WINDOWS","WINNING","WITHOUT","WITNESS","WORKING","WRITING"];
+        const TAGLINES = ["'I am' is the shortest complete sentence.","The dot over the 'i' is called a tittle.","'Bookkeeper' has three consecutive double letters.","A new word is added to the dictionary every two hours.","The most common letter is 'E'.","The least common letter is 'Z'.","'Stewardesses' is the longest word typed with only the left hand.","'Dreamt' is the only word that ends in 'mt'.","A pangram contains every letter of the alphabet.","'Almost' is the longest word with letters in alphabetical order.","The oldest English word is 'town'.","'Queue' sounds the same even if you remove the last four letters.","'Four' is the only number whose letters are in alphabetical order.","'One' is the only one in reverse alphabetical order.","A word with no vowels is a 'glyph'.","'Uncopyrightable' is a long word with no repeating letters.","A 'contronym' is a word with two opposite meanings (e.g. 'cleave').","'Underground' begins and ends with 'und'.","The longest one-syllable word is 'screeched'.","'Rhythm' is the longest word without a, e, i, o, or u.","A 'palindrome' reads the same forwards and backwards.","Shakespeare invented over 1,700 words.","'Goddessship' is the only word with a triple letter.","The 'Q' in 'QWERTY' is almost always followed by a 'U'.","'Abstemious' contains all five vowels in order.","A 'portmanteau' blends two words (e.g. 'smog').","'Subbookkeeper' has four pairs of double letters.","The longest word in English has 45 letters.","What seven-letter word has three 'U's? 'Triumphs'?","No, the seven-letter word with three 'U's is 'unusual'.","A 'ghost word' is a word that appeared in a dictionary by error.","'Therein' contains seven words without rearranging letters.","'Indivisibility' has only one vowel, repeated six times.","The word 'set' has the most definitions.","'Go' is the shortest complete sentence.","There are words that only exist in plural form, like 'scissors'.","'Listen' and 'silent' use the same letters.","The sixth sick sheik's sixth sheep's sick.","The past tense of 'yeet' is 'yote'. Maybe.","To 'plenish' is the opposite of 'replenish'.","A 'jiffy' is an actual unit of time (1/100th of a second).","'Month', 'orange', 'silver', 'purple'... do not rhyme.","'Spoonfeed' is the longest word with letters in reverse alphabetical order.","The shortest '-ology' (study of) is 'oology' (study of eggs).","'Iouea' is a sea sponge and has all 5 vowels.","A 'Trellis' is a framework for supporting plants.","We think 'Trellis' is a better name than 'WordGrid'.","What's another word for 'Thesaurus'?","A 'crwth' is a Welsh instrument without vowels.","'Book' and 'read' are four-letter words."];
         let PUZZLE;
+        let startTime, moveCount, firstTryBonus, firstCheckUsed;
+        const CHECKS_AVAILABLE = 6;
 
-        // Stats
-        let startTime;
-        let moveCount;
-        let firstTryBonus;
-        let firstCheckUsed;
-        const CHECKS_AVAILABLE = 6; // Set checks to 6
+        function simplePRNG(seed) { let a = seed; return function() { a ^= a << 13; a ^= a >> 17; a ^= a << 5; return (a & 0x7FFFFFFF) / 0x80000000; }; }
+        function getDailySeed() { const now = new Date(); return (now.getFullYear() * 10000) + (now.getMonth() * 100) + now.getDate(); }
 
-        // --- DYNAMIC PUZZLE GENERATION (7-letter stem, 4-letter words) ---
-        function generatePuzzle() {
-             let isValidPuzzle = false;
-             let generatedPuzzle;
-             let attempts = 0;
-             const stemLength = 7; 
+        function generatePuzzle(randomFunc) {
+            let isValidPuzzle = false;
+            let generatedPuzzle;
+            let attempts = 0;
+            const stemLength = 7;
+            const maxAttempts = 10000;
 
-             while (!isValidPuzzle && attempts < 2000) { 
-                 attempts++;
-                 const stem = STEM_WORDS[Math.floor(Math.random() * STEM_WORDS.length)];
-                 if (new Set(stem).size !== stem.length) continue; 
+            while (!isValidPuzzle && attempts < maxAttempts) {
+                attempts++;
+                const stemIndex = Math.floor(randomFunc() * STEM_WORDS.length);
+                const stem = STEM_WORDS[stemIndex];
+                // --- ADDED STRICT LENGTH CHECK ---
+                if (!stem || stem.length !== stemLength) { console.warn(`Attempt ${attempts}: Invalid stem selected (index ${stemIndex}, value ${stem}, length ${stem?.length}). Retrying.`); continue; }
 
-                 const solution = [];
-                 let possible = true;
-                 let usedPatterns = {};
+                const solution = [];
+                let possible = true;
+                let usedPatterns = {};
 
-                 for (const stemLetter of stem) {
-                     let possibleWords = ALL_WORDS.filter(word => word.length === 4 && word.includes(stemLetter));
-                     if (possibleWords.length === 0) { possible = false; break; }
+                for (const stemLetter of stem) {
+                    let possibleWords = ALL_WORDS.filter(word => word && word.length === 4 && word.includes(stemLetter));
+                    if (possibleWords.length === 0) { possible = false; break; }
+                    if (usedPatterns[stemLetter]) { possibleWords = possibleWords.filter(word => word && !usedPatterns[stemLetter].includes(word.indexOf(stemLetter))); }
+                    if (possibleWords.length === 0) { possible = false; break; }
 
-                     if (usedPatterns[stemLetter]) {
-                          possibleWords = possibleWords.filter(word => !usedPatterns[stemLetter].includes(word.indexOf(stemLetter)));
-                     }
-                     if (possibleWords.length === 0) { possible = false; break; }
+                    const wordIndex = Math.floor(randomFunc() * possibleWords.length);
+                    const word = possibleWords[wordIndex];
+                     if (!word) { console.warn(`Attempt ${attempts}: Failed to select word for ${stemLetter}`); possible = false; break; }
+                    const stemIdxInWord = word.indexOf(stemLetter);
+                     if (stemIdxInWord === -1) { console.warn(`Attempt ${attempts}: Letter ${stemLetter} not found in ${word}.`); possible = false; break; }
 
-                     const word = possibleWords[Math.floor(Math.random() * possibleWords.length)];
-                     const stemIndex = word.indexOf(stemLetter);
-                     if (!usedPatterns[stemLetter]) usedPatterns[stemLetter] = [];
-                     usedPatterns[stemLetter].push(stemIndex);
-                     solution.push({ word, stemIndex });
-                 }
+                    if (!usedPatterns[stemLetter]) usedPatterns[stemLetter] = [];
+                    usedPatterns[stemLetter].push(stemIdxInWord);
+                    solution.push({ word, stemIndex: stemIdxInWord });
+                }
+                if (!possible) continue;
 
+                let requiredTrayLetters = [];
+                 solution.forEach(sol => { if (sol.word) { for(let i = 0; i < sol.word.length; i++) { if (i !== sol.stemIndex) requiredTrayLetters.push(sol.word[i]); } } else { console.warn(`Attempt ${attempts}: Solution missing word.`); possible = false; } });
                  if (!possible) continue;
 
-                 // Check letter economy (7 stems * 3 letters = 21 tray letters)
-                 let requiredTrayLetters = [];
-                  solution.forEach(sol => {
-                      for(let i = 0; i < sol.word.length; i++) {
-                         if (i !== sol.stemIndex) requiredTrayLetters.push(sol.word[i]);
-                     }
-                  });
+                let requiredCounts = {}; requiredTrayLetters.forEach(l => requiredCounts[l] = (requiredCounts[l] || 0) + 1);
+                let actualTrayLetters = requiredTrayLetters.join(''); let actualTrayCounts = {}; actualTrayLetters.split('').forEach(l => actualTrayCounts[l] = (actualTrayCounts[l] || 0) + 1);
+                let countsMatch = true; for (const letter in requiredCounts) { if (!actualTrayCounts[letter] || actualTrayCounts[letter] !== requiredCounts[letter]) { countsMatch = false; break; } } if (countsMatch) { for (const letter in actualTrayCounts) { if (!requiredCounts[letter]) { countsMatch = false; break; } } }
 
-                 let requiredCounts = {};
-                 requiredTrayLetters.forEach(l => requiredCounts[l] = (requiredCounts[l] || 0) + 1);
+                if (countsMatch && actualTrayLetters.length === stemLength * 3) {
+                    isValidPuzzle = true;
+                    generatedPuzzle = { stem, solution, trayLetters: actualTrayLetters };
+                    console.log(`Generated Puzzle (Stem: ${stem}) after ${attempts} attempts:`, generatedPuzzle);
+                } else if (attempts % 500 === 0) { console.warn(`Attempt ${attempts}: Economy/length check failed (${actualTrayLetters.length}). Stem: ${stem}. Match: ${countsMatch}`); }
+            } // End while loop
 
-                 let actualTrayLetters = requiredTrayLetters.join('');
-                 let actualTrayCounts = {};
-                  actualTrayLetters.split('').forEach(l => actualTrayCounts[l] = (actualTrayCounts[l] || 0) + 1);
-
-                 let countsMatch = true;
-                 for (const letter in requiredCounts) {
-                     if (!actualTrayCounts[letter] || actualTrayCounts[letter] !== requiredCounts[letter]) {
-                         countsMatch = false; break;
-                     }
-                 }
-                 for (const letter in actualTrayCounts) {
-                      if (!requiredCounts[letter]) { countsMatch = false; break; }
-                 }
-
-                 // Check correct tray length (21 for 7-letter stem)
-                 if (countsMatch && actualTrayLetters.length === stemLength * 3) {
-                     isValidPuzzle = true;
-                     generatedPuzzle = { stem, solution, trayLetters: actualTrayLetters };
-                     console.log(`Generated Daily Puzzle (Stem: ${stemLength}):`, generatedPuzzle);
-                 } else if (attempts % 100 === 0) {
-                      console.warn(`Attempt ${attempts}: Economy check/length failed (${actualTrayLetters.length}). Stem: ${stem}`);
-                 }
-             } // End while loop
-
-             if (!isValidPuzzle) {
-                  console.error(`CRITICAL FAILURE: Could not generate valid puzzle after 2000 attempts.`);
-                  // Fallback to a known-good 7-stem puzzle
-                  return {
-                    stem: "CABINET",
-                    solution: [
-                        { word: "BACK", stemIndex: 2 }, { word: "ABLE", stemIndex: 1 }, { word: "BILL", stemIndex: 0 },
-                        { word: "TINY", stemIndex: 2 }, { word: "NAME", stemIndex: 2 }, { word: "EACH", stemIndex: 0 },
-                        { word: "CHAT", stemIndex: 3 }
-                    ],
-                    trayLetters: "BAKBLELILTYINAMEACHHAT"
-                  };
-             }
-             return generatedPuzzle;
-         }
+            if (!isValidPuzzle) {
+                 console.error(`CRITICAL FAILURE: Could not generate valid puzzle after ${maxAttempts} attempts.`);
+                 // Fallback remains the same
+                 return { stem: "CABINET", solution: [{ word: "BACK", stemIndex: 2 }, { word: "ABLE", stemIndex: 1 }, { word: "BILL", stemIndex: 0 }, { word: "TINY", stemIndex: 2 }, { word: "NAME", stemIndex: 2 }, { word: "EACH", stemIndex: 0 }, { word: "CHAT", stemIndex: 3 }], trayLetters: "BAKBLELILTYINAMEACHHAT" };
+            }
+            return generatedPuzzle;
+        }
 
 
         const elements = {
             grid: document.getElementById('puzzle-grid'),
             tray: document.getElementById('letter-tray'),
             checkBtn: document.getElementById('check-btn'),
-            // resetBtn: document.getElementById('reset-btn'), // This ID does not exist in the HTML
             lights: document.getElementById('check-lights'),
             message: document.getElementById('message-area'),
-            modal: document.getElementById('stats-modal'),
-            modalOverlay: document.getElementById('stats-modal-overlay'),
-            replayBtn: document.getElementById('replay-btn'),
+            endGameModal: document.getElementById('end-game-stats-modal'),
+            endGameModalOverlay: document.getElementById('end-game-stats-modal-overlay'),
+            practiceBtn: document.getElementById('practice-btn'),
             shareBtn: document.getElementById('share-btn'),
             solutionDisplay: document.getElementById('solution-display'),
             solutionTextEl: document.getElementById('solution-text'),
             modalTitle: document.getElementById('modal-title'),
-            // Stats elements
             finalTimeEl: document.getElementById('final-time'),
             finalMovesEl: document.getElementById('final-moves'),
-            moveBonusEl: document.getElementById('move-bonus'), 
+            moveBonusEl: document.getElementById('move-bonus'),
             firstTryBonusEl: document.getElementById('first-try-bonus'),
             checkBonusEl: document.getElementById('check-bonus'),
             finalScoreEl: document.getElementById('final-score'),
-            // New elements
+            persistentStatsBtn: document.getElementById('persistent-stats-btn'),
+            persistentStatsModal: document.getElementById('persistent-stats-modal'),
+            persistentStatsModalOverlay: document.getElementById('persistent-stats-modal-overlay'),
+            closePersistentStatsBtn: document.getElementById('close-persistent-stats-btn'),
+            statsPlayedEl: document.getElementById('stats-played'),
+            statsWinPctEl: document.getElementById('stats-win-pct'),
+            statsStreakEl: document.getElementById('stats-streak'),
+            statsMaxStreakEl: document.getElementById('stats-max-streak'),
             startScreen: document.getElementById('start-screen'),
             playBtn: document.getElementById('play-btn'),
             helpBtn: document.getElementById('help-btn'),
@@ -773,495 +681,375 @@
             settingsModalOverlay: document.getElementById('settings-modal-overlay'),
             closeHelpBtn: document.getElementById('close-help-btn'),
             closeSettingsBtn: document.getElementById('close-settings-btn'),
-            closeStatsBtn: document.getElementById('close-stats-btn'),
+            closeEndGameStatsBtn: document.getElementById('close-end-game-stats-btn'),
             themeToggle: document.getElementById('theme-toggle'),
-            tagline: document.getElementById('tagline'), // Tagline element
-            moveCountText: document.getElementById('move-count-text') // Header move counter
+            tagline: document.getElementById('tagline'),
+            moveCountText: document.getElementById('move-count-text'),
+            resetDailyBtn: document.getElementById('reset-daily-btn')
         };
 
-        let state = {};
+        const LS_KEYS = { DAILY_STATE: 'trellisDailyState', DAILY_STATS: 'trellisDailyStats' };
+        let persistentStats = { gamesPlayed: 0, wins: 0, currentStreak: 0, maxStreak: 0, lastPlayedDateSeed: null };
+        let currentDailyState = null;
+        let state = { selectedLetter: null, checksRemaining: CHECKS_AVAILABLE, lockedRows: new Set(), startTime: Date.now(), moveCount: 0, firstTryBonus: 0, firstCheckUsed: false };
 
-        function initGame() {
+        function loadPersistentStats() { try { const s = localStorage.getItem(LS_KEYS.DAILY_STATS); if (s) persistentStats = JSON.parse(s); } catch (e) { console.error("Load Stats Fail:", e); persistentStats = { gamesPlayed: 0, wins: 0, currentStreak: 0, maxStreak: 0, lastPlayedDateSeed: null }; } }
+        function savePersistentStats() { try { localStorage.setItem(LS_KEYS.DAILY_STATS, JSON.stringify(persistentStats)); } catch (e) { console.error("Save Stats Fail:", e); } }
+        function updatePersistentStats(isWin) { const todaySeed = getDailySeed(); if (persistentStats.lastPlayedDateSeed !== todaySeed) { persistentStats.gamesPlayed++; if (isWin) { persistentStats.wins++; const y = new Date(); y.setDate(y.getDate() - 1); const ySeed = (y.getFullYear() * 10000) + (y.getMonth() * 100) + y.getDate(); if (persistentStats.lastPlayedDateSeed === ySeed) persistentStats.currentStreak++; else persistentStats.currentStreak = 1; persistentStats.maxStreak = Math.max(persistentStats.maxStreak, persistentStats.currentStreak); } else { persistentStats.currentStreak = 0; } persistentStats.lastPlayedDateSeed = todaySeed; savePersistentStats(); } }
+        function displayPersistentStats() { elements.statsPlayedEl.textContent = persistentStats.gamesPlayed; const wp = persistentStats.gamesPlayed > 0 ? Math.round((persistentStats.wins / persistentStats.gamesPlayed) * 100) : 0; elements.statsWinPctEl.textContent = wp; elements.statsStreakEl.textContent = persistentStats.currentStreak; elements.statsMaxStreakEl.textContent = persistentStats.maxStreak; }
+
+        function initGame(isPracticeGame = false) {
+            let seed;
+            let randomFunc = Math.random;
+
             try {
-                PUZZLE = generatePuzzle();
-                 if (!PUZZLE) throw new Error("Puzzle generation returned null/undefined.");
+                let savedState = null;
+                if (isPracticeGame) {
+                    console.log("Starting Practice Game...");
+                    PUZZLE = generatePuzzle(randomFunc);
+                    if (!PUZZLE) throw new Error("Practice Puzzle generation failed."); // Check after generation
+                    currentDailyState = null;
+                    elements.playBtn.textContent = "Play Daily";
+                } else {
+                    console.log("Starting Daily Game...");
+                    seed = getDailySeed();
+                    randomFunc = simplePRNG(seed);
+                    PUZZLE = generatePuzzle(randomFunc);
+                    if (!PUZZLE) throw new Error("Daily Puzzle generation failed."); // Check after generation
+
+                    savedState = loadDailyState(seed);
+                    if (savedState) {
+                        console.log("Loaded saved state:", savedState);
+                        currentDailyState = savedState;
+                        // Ensure shareGridHistory is an array on load
+                        if (!Array.isArray(currentDailyState.shareGridHistory)) currentDailyState.shareGridHistory = [];
+                    } else {
+                        console.log("No saved state found for today.");
+                        currentDailyState = { seed: seed, board: null, lockedRows: [], checksRemaining: CHECKS_AVAILABLE, moveCount: 0, startTime: Date.now(), firstCheckUsed: false, isComplete: false, statsRecorded: false, shareGridHistory: [] };
+                    }
+                    elements.playBtn.textContent = "Practice";
+                }
+
             } catch (error) {
-                 console.error("Error during init/puzzle generation:", error);
-                 elements.message.textContent = "Failed to load puzzle. Refresh.";
+                 console.error("Init Error:", error);
+                 elements.message.textContent = "Load Error. Please refresh."; // Simple user message
                  elements.checkBtn.disabled = true;
+                 elements.playBtn.disabled = true;
+                 return; // Stop execution
+            }
+
+            state = { selectedLetter: null, checksRemaining: currentDailyState ? currentDailyState.checksRemaining : CHECKS_AVAILABLE, lockedRows: currentDailyState ? new Set(currentDailyState.lockedRows) : new Set(), startTime: currentDailyState ? currentDailyState.startTime : Date.now(), moveCount: currentDailyState ? currentDailyState.moveCount : 0, firstTryBonus: 0, firstCheckUsed: currentDailyState ? currentDailyState.firstCheckUsed : false };
+            elements.grid.innerHTML = ''; elements.tray.innerHTML = ''; elements.message.textContent = ''; elements.endGameModalOverlay.classList.remove('visible'); elements.solutionDisplay.style.display = 'none';
+            elements.lights.innerHTML = ''; for (let i = 0; i < CHECKS_AVAILABLE; i++) { const light = document.createElement('div'); light.classList.add('check-light'); if (i < (CHECKS_AVAILABLE - state.checksRemaining)) light.classList.add('used'); elements.lights.appendChild(light); }
+
+             PUZZLE.solution.forEach((sol, i) => { const row = document.createElement('div'); row.classList.add('grid-row'); row.style.gridTemplateColumns = `repeat(7, var(--tile-size))`; for (let j = 0; j < 7; j++) { const tile = document.createElement('div'); if (j === 3) { tile.classList.add('grid-tile', 'stem-letter'); tile.dataset.row = i; const letter = document.createElement('div'); letter.classList.add('letter-tile'); if (state.lockedRows.has(i)) letter.classList.add('locked'); letter.textContent = PUZZLE.stem[i]; tile.appendChild(letter); } else { let isEmptySlot = false; if (sol.stemIndex === 0 && (j === 4 || j === 5 || j === 6)) isEmptySlot = true; else if (sol.stemIndex === 1 && (j === 2 || j === 4 || j === 5)) isEmptySlot = true; else if (sol.stemIndex === 2 && (j === 1 || j === 2 || j === 4)) isEmptySlot = true; else if (sol.stemIndex === 3 && (j === 0 || j === 1 || j === 2)) isEmptySlot = true; if (isEmptySlot) { tile.classList.add('grid-tile', 'empty'); tile.dataset.row = i; tile.dataset.col = j; } else tile.classList.add('placeholder-tile'); } row.appendChild(tile); } elements.grid.appendChild(row); });
+            elements.tray.innerHTML = ''; const trayRows = [document.createElement('div'), document.createElement('div'), document.createElement('div')]; trayRows.forEach((row) => { row.classList.add('tray-row'); row.style.gridTemplateColumns = `repeat(7, var(--tile-size))`; elements.tray.appendChild(row); }); const trayTiles = []; for(let i=0; i < 21; i++) { const trayTile = document.createElement('div'); trayTile.classList.add('tray-tile'); trayTile.dataset.trayIndex = i; trayTile.addEventListener('click', handleTileClick); trayTiles.push(trayTile); }
+
+            const trayLetters = PUZZLE.trayLetters.split('');
+            const initialBoardState = currentDailyState?.board || null;
+            if (initialBoardState) {
+                const placedLettersMap = new Map(); initialBoardState.forEach(item => { if (item.letter) { placedLettersMap.set(item.letter, (placedLettersMap.get(item.letter) || 0) + 1); const letterTile = document.createElement('div'); letterTile.classList.add('letter-tile'); letterTile.textContent = item.letter; letterTile.addEventListener('click', handleTileClick); let targetTile = null; if (item.location === 'grid') targetTile = document.querySelector(`.grid-tile.empty[data-row='${item.row}'][data-col='${item.col}']`); else if (item.location === 'tray') targetTile = document.querySelector(`.tray-tile[data-tray-index='${item.index}']`); if (targetTile) { if (targetTile.children.length === 0) targetTile.appendChild(letterTile); else console.warn("Occupied slot:", item); } else console.warn("Target tile not found:", item); } }); const originalTrayCounts = {}; trayLetters.forEach(l => originalTrayCounts[l] = (originalTrayCounts[l] || 0) + 1); placedLettersMap.forEach((count, letter) => { if (originalTrayCounts[letter]) originalTrayCounts[letter] -= count; }); const remainingTrayLetters = []; for (const letter in originalTrayCounts) { for (let k = 0; k < originalTrayCounts[letter]; k++) remainingTrayLetters.push(letter); }
+                remainingTrayLetters.sort(() => randomFunc() - 0.5); let remainingIdx = 0; trayTiles.forEach(tile => { if (tile.children.length === 0 && remainingIdx < remainingTrayLetters.length) { const letterTile = document.createElement('div'); letterTile.classList.add('letter-tile'); letterTile.textContent = remainingTrayLetters[remainingIdx]; letterTile.addEventListener('click', handleTileClick); tile.appendChild(letterTile); remainingIdx++; } });
+                if (!currentDailyState.isComplete) handleCheck(true);
+            } else {
+                trayLetters.sort(() => randomFunc() - 0.5).forEach((char, i) => { if (trayTiles[i] && trayTiles[i].children.length === 0) { const letterTile = document.createElement('div'); letterTile.classList.add('letter-tile'); letterTile.textContent = char; letterTile.addEventListener('click', handleTileClick); trayTiles[i].appendChild(letterTile); } });
+            }
+
+             trayTiles.slice(0, 7).forEach(tile => trayRows[0].appendChild(tile)); trayTiles.slice(7, 14).forEach(tile => trayRows[1].appendChild(tile)); trayTiles.slice(14, 21).forEach(tile => trayRows[2].appendChild(tile));
+            attachTileListeners(); elements.checkBtn.disabled = (currentDailyState && currentDailyState.isComplete); updateMoveCounter(); if (currentDailyState && currentDailyState.isComplete) endGame(true, true);
+        }
+
+
+        function attachTileListeners() { document.querySelectorAll('.grid-tile.empty').forEach(t => { t.removeEventListener('click', handleTileClick); t.addEventListener('click', handleTileClick); }); elements.tray.querySelectorAll('.letter-tile').forEach(t => { t.removeEventListener('click', handleTileClick); t.addEventListener('click', handleTileClick); }); elements.tray.querySelectorAll('.tray-tile').forEach(t => { if (t.children.length === 0) { t.removeEventListener('click', handleTileClick); t.addEventListener('click', handleTileClick); } }); }
+        function startGame() { elements.tagline.textContent = TAGLINES[Math.floor(Math.random() * TAGLINES.length)]; elements.startScreen.style.opacity = '0'; elements.startScreen.style.visibility = 'hidden'; const seed = getDailySeed(); const savedState = loadDailyState(seed); if (savedState && !savedState.isComplete) initGame(false); else initGame(false); }
+        function updateMoveCounter() { if (elements.moveCountText) elements.moveCountText.textContent = state.moveCount; }
+        function handleTileClick(e) { e.stopPropagation(); const clickedElement = e.currentTarget; if (currentDailyState && currentDailyState.isComplete) return; if (clickedElement.classList.contains('letter-tile')) { const letterTile = clickedElement; if (letterTile.classList.contains('locked')) return; if (state.selectedLetter === letterTile) { state.selectedLetter.classList.remove('selected'); state.selectedLetter = null; } else if (state.selectedLetter) { const sourceContainer = state.selectedLetter.parentElement; const targetContainer = letterTile.parentElement; if (targetContainer.classList.contains('stem-letter')) return; targetContainer.appendChild(state.selectedLetter); sourceContainer.appendChild(letterTile); state.moveCount++; updateMoveCounter(); state.selectedLetter.classList.remove('hint-correct', 'hint-present', 'hint-incorrect'); letterTile.classList.remove('hint-correct', 'hint-present', 'hint-incorrect'); state.selectedLetter.classList.remove('selected'); state.selectedLetter = null; saveDailyState(); } else { state.selectedLetter = letterTile; state.selectedLetter.classList.add('selected'); } } else if (clickedElement.classList.contains('empty')) { const gridTileContainer = clickedElement; if (state.selectedLetter && gridTileContainer.children.length === 0) { gridTileContainer.appendChild(state.selectedLetter); state.selectedLetter.classList.remove('hint-correct', 'hint-present', 'hint-incorrect'); state.selectedLetter.classList.remove('selected'); state.selectedLetter = null; state.moveCount++; updateMoveCounter(); saveDailyState(); } } else if (clickedElement.classList.contains('tray-tile') && clickedElement.children.length === 0) { if (state.selectedLetter) { const sourceContainer = state.selectedLetter.parentElement; if(sourceContainer.classList.contains('grid-tile')) { clickedElement.appendChild(state.selectedLetter); state.selectedLetter.classList.remove('hint-correct', 'hint-present', 'hint-incorrect'); state.selectedLetter.classList.remove('selected'); state.selectedLetter = null; state.moveCount++; updateMoveCounter(); saveDailyState(); } } } }
+
+        elements.playBtn.addEventListener('click', () => { if (elements.playBtn.textContent.includes("Daily")) startGame(); else initGame(true); });
+        elements.checkBtn.addEventListener('click', () => handleCheck(false));
+        elements.practiceBtn.addEventListener('click', () => { initGame(true); elements.endGameModalOverlay.classList.remove('visible'); });
+        elements.shareBtn.addEventListener('click', handleShare);
+        elements.helpBtn.addEventListener('click', () => elements.helpModalOverlay.classList.add('visible'));
+        elements.closeHelpBtn.addEventListener('click', () => elements.helpModalOverlay.classList.remove('visible'));
+        elements.helpModalOverlay.addEventListener('click', (e) => { if (e.target === elements.helpModalOverlay) elements.helpModalOverlay.classList.remove('visible'); });
+        elements.settingsBtn.addEventListener('click', () => elements.settingsModalOverlay.classList.add('visible'));
+        elements.closeSettingsBtn.addEventListener('click', () => elements.settingsModalOverlay.classList.remove('visible'));
+        elements.settingsModalOverlay.addEventListener('click', (e) => { if (e.target === elements.settingsModalOverlay) elements.settingsModalOverlay.classList.remove('visible'); });
+        elements.closeEndGameStatsBtn.addEventListener('click', () => elements.endGameModalOverlay.classList.remove('visible'));
+        elements.endGameModalOverlay.addEventListener('click', (e) => { if (e.target === elements.endGameModalOverlay) elements.endGameModalOverlay.classList.remove('visible'); });
+        elements.persistentStatsBtn.addEventListener('click', () => { displayPersistentStats(); elements.persistentStatsModalOverlay.classList.add('visible'); });
+        elements.closePersistentStatsBtn.addEventListener('click', () => elements.persistentStatsModalOverlay.classList.remove('visible'));
+        elements.persistentStatsModalOverlay.addEventListener('click', (e) => { if (e.target === elements.persistentStatsModalOverlay) elements.persistentStatsModalOverlay.classList.remove('visible'); });
+        elements.themeToggle.addEventListener('change', () => { document.body.classList.toggle('light-mode', !elements.themeToggle.checked); });
+        elements.resetDailyBtn.addEventListener('click', () => { if (confirm("Reset daily progress?")) { if (currentDailyState) { clearDailyState(currentDailyState.seed); initGame(false); elements.settingsModalOverlay.classList.remove('visible'); } } });
+
+        // --- UPDATED handleCheck with refined animation timing and history saving ---
+        function handleCheck(isSilent = false) {
+            if (currentDailyState && currentDailyState.isComplete) return;
+            if (!isSilent && state.checksRemaining <= 0) return;
+
+            let checkPerformedThisTurn = false;
+            if (!isSilent && state.checksRemaining > 0) { // Check if checks are > 0 before decrementing
+                checkPerformedThisTurn = true; // Mark that a user check was initiated
+                if (!state.firstCheckUsed) { state.firstCheckUsed = true; if (currentDailyState) currentDailyState.firstCheckUsed = true; }
+
+                state.checksRemaining--;
+                if (currentDailyState) currentDailyState.checksRemaining = state.checksRemaining;
+                const lightToUse = CHECKS_AVAILABLE - state.checksRemaining - 1;
+                if (lightToUse >= 0 && lightToUse < CHECKS_AVAILABLE) {
+                    const lightElement = elements.lights.children[lightToUse];
+                    if (lightElement) lightElement.classList.add('used');
+                }
+            } else if (!isSilent && state.checksRemaining <= 0) {
+                 // If user tries to check with 0 checks left, do nothing
+                 console.log("No checks remaining.");
                  return;
             }
 
-            state = {
-                selectedLetter: null,
-                checksRemaining: CHECKS_AVAILABLE,
-                lockedRows: new Set(),
-                startTime: Date.now(),
-                moveCount: 0,
-                firstTryBonus: 0, 
-                firstCheckUsed: false
-            };
 
-            elements.grid.innerHTML = '';
-            elements.tray.innerHTML = '';
-            elements.message.textContent = '';
-            elements.modalOverlay.classList.remove('visible'); 
-             elements.solutionDisplay.style.display = 'none';
+            const flipDurationMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--flip-duration') || '0.6') * 1000;
+            const tileStaggerDelay = 100; // ms between each tile animation in a row
+            let currentCheckRowStatuses = Array(7).fill('unchecked'); // Holds status for share grid
+            let currentFirstTryBonus = 0;
+            let rowsToCheck = []; // Array to hold { rowIndex, emptyTiles }
+            let animationCompletionPromises = [];
+            let maxRowAnimationTime = 0; // Track the longest animation time for this check
 
-            elements.lights.innerHTML = '';
-            for (let i = 0; i < CHECKS_AVAILABLE; i++) { 
-                const light = document.createElement('div');
-                light.classList.add('check-light');
-                elements.lights.appendChild(light);
-            }
-
-            // Create Grid (7 columns, 7 rows)
-            PUZZLE.solution.forEach((sol, i) => {
-                const row = document.createElement('div');
-                row.classList.add('grid-row');
-                row.style.gridTemplateColumns = `repeat(7, ${getComputedStyle(document.documentElement).getPropertyValue('--tile-size')})`;
-
-                for (let j = 0; j < 7; j++) {
-                    const tile = document.createElement('div');
-                    if (j === 3) { // Central stem column
-                        tile.classList.add('grid-tile', 'stem-letter');
-                        tile.dataset.row = i;
-                        const letter = document.createElement('div');
-                        letter.classList.add('letter-tile');
-                        letter.textContent = PUZZLE.stem[i];
-                        tile.appendChild(letter);
+            // Determine which rows are ready to be checked and populate currentCheckRowStatuses
+            for (let i = 0; i < PUZZLE.stem.length; i++) {
+                if (state.lockedRows.has(i)) {
+                    currentCheckRowStatuses[i] = 'correct'; // Already correct
+                    continue;
+                }
+                const emptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`));
+                if (emptyTiles.length === 3 && emptyTiles.every(t => t.children.length > 0)) {
+                    rowsToCheck.push({ rowIndex: i, emptyTiles });
+                    // Clear previous visual hints only on non-silent checks before animation
+                    if (!isSilent) emptyTiles.forEach(t => { if (t.children[0]) t.children[0].classList.remove('hint-correct', 'hint-present', 'hint-incorrect'); });
+                    // Status will be determined after evaluation
+                } else {
+                    // Inherit status from previous check if available, otherwise 'unchecked'
+                    if (currentDailyState?.shareGridHistory?.length > 0) {
+                        const lastHistory = currentDailyState.shareGridHistory[currentDailyState.shareGridHistory.length - 1];
+                         if(lastHistory && lastHistory[i]) { // Check if last history and index exist
+                            currentCheckRowStatuses[i] = lastHistory[i];
+                         } else {
+                             currentCheckRowStatuses[i] = 'unchecked'; // Fallback
+                         }
                     } else {
-                         let isEmptySlot = false;
-                         if (sol.stemIndex === 0 && (j === 4 || j === 5 || j === 6)) isEmptySlot = true; // S _ _ _
-                         else if (sol.stemIndex === 1 && (j === 2 || j === 4 || j === 5)) isEmptySlot = true; // _ S _ _
-                         else if (sol.stemIndex === 2 && (j === 1 || j === 2 || j === 4)) isEmptySlot = true; // _ _ S _
-                         else if (sol.stemIndex === 3 && (j === 0 || j === 1 || j === 2)) isEmptySlot = true; // _ _ _ S
-
-                        if(isEmptySlot) {
-                            tile.classList.add('grid-tile', 'empty');
-                            tile.dataset.row = i;
-                        } else {
-                            tile.classList.add('placeholder-tile');
-                        }
+                        currentCheckRowStatuses[i] = 'unchecked';
                     }
-                    row.appendChild(tile);
                 }
-                elements.grid.appendChild(row);
-            });
-
-            // Create Tray (21 letters)
-             elements.tray.innerHTML = ''; 
-             
-             const trayRow1 = document.createElement('div');
-             trayRow1.classList.add('tray-row');
-             trayRow1.style.gridTemplateColumns = `repeat(7, var(--tile-size))`; // 7 tiles
-             
-             const trayRow2 = document.createElement('div');
-             trayRow2.classList.add('tray-row');
-             trayRow2.style.gridTemplateColumns = `repeat(7, var(--tile-size))`; // 7 tiles
-             
-             const trayRow3 = document.createElement('div');
-             trayRow3.classList.add('tray-row');
-             trayRow3.style.gridTemplateColumns = `repeat(7, var(--tile-size))`; // 7 tiles
-             
-             elements.tray.appendChild(trayRow1);
-             elements.tray.appendChild(trayRow2);
-             elements.tray.appendChild(trayRow3);
-
-             const trayTiles = [];
-             for(let i=0; i < 21; i++) { // 21 tiles
-                 const trayTile = document.createElement('div');
-                 trayTile.classList.add('tray-tile');
-                 trayTile.addEventListener('click', handleTileClick); 
-                 trayTiles.push(trayTile);
-             }
-             
-             PUZZLE.trayLetters.split('').sort(() => Math.random() - 0.5).forEach((char, i) => {
-                 if (trayTiles[i]) { 
-                    const letterTile = document.createElement('div');
-                    letterTile.classList.add('letter-tile');
-                    letterTile.textContent = char;
-                    letterTile.addEventListener('click', handleTileClick); 
-                    trayTiles[i].appendChild(letterTile);
-                 }
-             });
-             
-             // Add tiles to rows
-             trayTiles.slice(0, 7).forEach(tile => trayRow1.appendChild(tile)); 
-             trayTiles.slice(7, 14).forEach(tile => trayRow2.appendChild(tile)); 
-             trayTiles.slice(14, 21).forEach(tile => trayRow3.appendChild(tile)); 
-
-            attachTileListeners();
-            elements.checkBtn.disabled = false;
-            updateMoveCounter(); // Set move counter to 0
-        }
-
-        function attachTileListeners() {
-             document.querySelectorAll('.grid-tile.empty').forEach(tile => {
-                tile.removeEventListener('click', handleTileClick);
-                tile.addEventListener('click', handleTileClick);
-            });
-             // Re-attach listeners to letters in tray
-             elements.tray.querySelectorAll('.letter-tile').forEach(tile => {
-                 tile.removeEventListener('click', handleTileClick);
-                 tile.addEventListener('click', handleTileClick);
-             });
-             // Re-attach listener to empty tray tiles
-             elements.tray.querySelectorAll('.tray-tile').forEach(tile => {
-                 if (tile.children.length === 0) {
-                     tile.removeEventListener('click', handleTileClick);
-                     tile.addEventListener('click', handleTileClick);
-                 }
-             });
-        }
-        
-        function startGame() {
-            elements.tagline.textContent = TAGLINES[Math.floor(Math.random() * TAGLINES.length)]; // Set tagline on play
-            elements.startScreen.style.opacity = '0';
-            elements.startScreen.style.visibility = 'hidden';
-            initGame();
-        }
-
-        // --- MODAL AND THEME LISTENERS ---
-        elements.playBtn.addEventListener('click', startGame);
-        elements.checkBtn.addEventListener('click', handleCheck);
-        // elements.resetBtn.addEventListener('click', initGame); // This button is removed
-        elements.replayBtn.addEventListener('click', initGame); 
-        elements.shareBtn.addEventListener('click', handleShare);
-        
-        elements.helpBtn.addEventListener('click', () => elements.helpModalOverlay.classList.add('visible'));
-        elements.closeHelpBtn.addEventListener('click', () => elements.helpModalOverlay.classList.remove('visible'));
-        elements.helpModalOverlay.addEventListener('click', (e) => {
-            if (e.target === elements.helpModalOverlay) elements.helpModalOverlay.classList.remove('visible');
-        });
-        
-        elements.settingsBtn.addEventListener('click', () => elements.settingsModalOverlay.classList.add('visible'));
-        elements.closeSettingsBtn.addEventListener('click', () => elements.settingsModalOverlay.classList.remove('visible'));
-        elements.settingsModalOverlay.addEventListener('click', (e) => {
-            if (e.target === elements.settingsModalOverlay) elements.settingsModalOverlay.classList.remove('visible');
-        });
-        
-        elements.closeStatsBtn.addEventListener('click', () => elements.modalOverlay.classList.remove('visible'));
-        
-        elements.themeToggle.addEventListener('change', () => {
-            if (elements.themeToggle.checked) {
-                document.body.classList.remove('light-mode');
-            } else {
-                document.body.classList.add('light-mode');
             }
-        });
-        
-        function updateMoveCounter() {
-            if (elements.moveCountText) { 
-                elements.moveCountText.textContent = state.moveCount;
-            }
-        }
 
-        function handleTileClick(e) {
-            e.stopPropagation();
-            const clickedElement = e.currentTarget;
-
-            if (clickedElement.classList.contains('letter-tile')) {
-                 const letterTile = clickedElement;
-                 if (letterTile.classList.contains('locked')) return;
-
-                 if (state.selectedLetter === letterTile) { 
-                     state.selectedLetter.classList.remove('selected');
-                     state.selectedLetter = null;
-                 } else if (state.selectedLetter) { 
-                      const sourceContainer = state.selectedLetter.parentElement;
-                      const targetContainer = letterTile.parentElement;
-                      
-                      if (targetContainer.classList.contains('stem-letter')) return;
-
-                      targetContainer.appendChild(state.selectedLetter);
-                      sourceContainer.appendChild(letterTile);
-                      state.moveCount++;
-                      updateMoveCounter();
-                      
-                      // --- FIX: REMOVE HINTS ON SWAP ---
-                      state.selectedLetter.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
-                      letterTile.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
-                      
-                      state.selectedLetter.classList.remove('selected');
-                      state.selectedLetter = null;
-
-                 } else { 
-                     state.selectedLetter = letterTile;
-                     state.selectedLetter.classList.add('selected');
-                 }
-            } 
-            else if (clickedElement.classList.contains('empty')) {
-                const gridTileContainer = clickedElement;
-                if (state.selectedLetter && gridTileContainer.children.length === 0) {
-                    const sourceContainer = state.selectedLetter.parentElement;
-                    gridTileContainer.appendChild(state.selectedLetter);
-                    
-                    // --- FIX: REMOVE HINTS ON MOVE ---
-                    state.selectedLetter.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
-                    
-                    state.selectedLetter.classList.remove('selected');
-                    state.selectedLetter = null;
-                    state.moveCount++;
-                    updateMoveCounter();
-                }
-            } 
-             else if (clickedElement.classList.contains('tray-tile') && clickedElement.children.length === 0) {
-                 if (state.selectedLetter) {
-                    const sourceContainer = state.selectedLetter.parentElement;
-                     if(sourceContainer.classList.contains('grid-tile')) {
-                          clickedElement.appendChild(state.selectedLetter); 
-                          
-                           // --- FIX: REMOVE HINTS ON RETURN ---
-                          state.selectedLetter.classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
-                          
-                          state.selectedLetter.classList.remove('selected');
-                          state.selectedLetter = null;
-                          state.moveCount++;
-                          updateMoveCounter();
+            // If no rows are ready to check, but the button was pressed by the user
+            if (rowsToCheck.length === 0 && checkPerformedThisTurn) {
+                 console.log("Check pressed, but no rows were fully populated.");
+                 // Still need to save state (like checks remaining) and check for loss condition
+                 // --- FIX: Add history push even if no rows checked ---
+                 if (currentDailyState) {
+                     if (!Array.isArray(currentDailyState.shareGridHistory)) currentDailyState.shareGridHistory = [];
+                     const checksUsedIndex = CHECKS_AVAILABLE - state.checksRemaining - 1;
+                     if (checksUsedIndex >= 0 && currentDailyState.shareGridHistory.length === checksUsedIndex) {
+                          currentDailyState.shareGridHistory.push([...currentCheckRowStatuses]); // Push a copy of the current state (mostly inherited)
+                          console.log("Pushed history for check (no rows evaluated):", checksUsedIndex + 1, currentCheckRowStatuses);
+                     } else {
+                          console.warn(`History push mismatch (no rows evaluated). Index: ${checksUsedIndex}, History Length: ${currentDailyState.shareGridHistory.length}`);
                      }
                  }
+                 saveDailyState();
+                 if (state.checksRemaining === 0 && state.lockedRows.size !== PUZZLE.stem.length) {
+                    endGame(false, false); // Trigger loss if out of checks
+                 }
+                 return; // Exit check function
             }
-        }
 
 
-        function handleCheck() {
-            if (state.checksRemaining <= 0) return;
+            rowsToCheck.forEach(({ rowIndex, emptyTiles }) => {
+                 let rowAnimationPromise = new Promise((resolveRow) => {
+                    const i = rowIndex;
+                    const sol = PUZZLE.solution[i];
+                    let guess = Array(4).fill(''); guess[sol.stemIndex] = PUZZLE.stem[i];
+                    emptyTiles.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+                    let emptyIdx = 0; for(let k=0; k<4; k++) { if (k !== sol.stemIndex) { if (emptyTiles[emptyIdx]?.children[0]) guess[k] = emptyTiles[emptyIdx].children[0].textContent; emptyIdx++; } } guess = guess.join('');
 
-            const isFirstCheckOfGame = !state.firstCheckUsed;
-             if (isFirstCheckOfGame) state.firstCheckUsed = true;
+                    const letterTilesInRow = emptyTiles.map(t => t.children[0]).filter(Boolean);
+                    const stemTile = document.querySelector(`.grid-tile.stem-letter[data-row='${i}'] .letter-tile`);
+                    let animationsRemaining = letterTilesInRow.length + (stemTile && guess === sol.word ? 1 : 0); // Only animate stem if correct
 
-            state.checksRemaining--;
-            document.querySelector(`.check-lights .check-light:nth-child(${CHECKS_AVAILABLE - state.checksRemaining})`).classList.add('used');
-
-            let currentFirstTryBonus = 0;
-
-            for (let i = 0; i < PUZZLE.stem.length; i++) {
-                if (state.lockedRows.has(i)) continue;
-
-                const sol = PUZZLE.solution[i];
-                const emptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`));
-
-                if (emptyTiles.length !== 3 || emptyTiles.some(t => t.children.length === 0)) continue;
-
-                let guess = Array(4).fill(''); 
-                guess[sol.stemIndex] = PUZZLE.stem[i];
-
-                emptyTiles.sort((a, b) => {
-                    const rectA = a.getBoundingClientRect();
-                    const rectB = b.getBoundingClientRect();
-                    return rectA.left - rectB.left;
-                });
-                
-                let emptyIdx = 0;
-                for(let k=0; k<4; k++) {
-                    if (k !== sol.stemIndex) {
-                        guess[k] = emptyTiles[emptyIdx].children[0].textContent;
-                        emptyIdx++;
-                    }
-                }
-                guess = guess.join('');
-
-                // Clear hints from letter tiles
-                emptyTiles.forEach(t => {
-                    if (t.children[0]) {
-                        t.children[0].classList.remove('hint-correct', 'hint-present', 'hint-incorrect');
-                    }
-                });
+                     // Calculate max animation time for this specific row
+                     let rowMaxDelay = 0;
+                     if (animationsRemaining > 0 && !isSilent) { // Only calculate delay if animating
+                         rowMaxDelay = (letterTilesInRow.length -1) * tileStaggerDelay + flipDurationMs + (stemTile && guess === sol.word ? tileStaggerDelay : 0)
+                     }
+                     maxRowAnimationTime = Math.max(maxRowAnimationTime, rowMaxDelay); // Update overall max time
 
 
-                if (guess === sol.word) {
-                    if (isFirstCheckOfGame) currentFirstTryBonus += 150; 
-
-                    emptyTiles.forEach(t => {
-                        if (t.children[0]) { 
-                            t.children[0].classList.add('locked');
-                            t.children[0].classList.add('hint-correct'); // Color tile directly
+                    if (guess === sol.word) {
+                        currentCheckRowStatuses[i] = 'correct';
+                        if (!isSilent && state.firstCheckUsed === false) { // Check if firstCheckUsed is still false
+                           // Award bonus only if this is the first ever check *and* the word is correct on this check
+                           const isFirstEverCheck = (CHECKS_AVAILABLE - state.checksRemaining) === 1;
+                           if (isFirstEverCheck) {
+                               currentFirstTryBonus += 150;
+                           }
                         }
-                    });
-                    state.lockedRows.add(i);
-                } else {
-                    const guessLetters = guess.split('');
-                    const solutionLetters = sol.word.split('');
-                    const tileHints = Array(4).fill(null); 
-                    const solutionLetterUsed = Array(4).fill(false);
-                    
-                    solutionLetterUsed[sol.stemIndex] = true; // Mark stem letter as used
 
-                    // --- REBUILT HINT LOGIC ---
-                    
-                    // First Pass: Greens
-                    emptyTiles.forEach((tile, tileIndex) => {
-                         const sortedEmptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`)).sort((a,b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
-                         let guessPos = -1;
-                         let currentEmptyIdx = 0;
-                         for(let k=0; k<4; k++) {
-                             if(k !== sol.stemIndex) {
-                                 if (tile === sortedEmptyTiles[currentEmptyIdx]) {
-                                     guessPos = k;
-                                     break;
-                                 }
-                                 currentEmptyIdx++;
-                             }
-                         }
-                        
-                         if (guessPos !== -1 && guessLetters[guessPos] === solutionLetters[guessPos]) {
-                             tileHints[guessPos] = 'hint-correct';
-                             solutionLetterUsed[guessPos] = true;
-                         }
-                    });
 
-                    // Second Pass: Oranges
-                    emptyTiles.forEach((tile, tileIndex) => {
-                         const sortedEmptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`)).sort((a,b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
-                         let guessPos = -1;
-                         let currentEmptyIdx = 0;
-                         for(let k=0; k<4; k++) {
-                             if(k !== sol.stemIndex) {
-                                 const potentialTile = sortedEmptyTiles[currentEmptyIdx];
-                                 if (tile === potentialTile) {
-                                     guessPos = k;
-                                     break;
-                                 }
-                                 currentEmptyIdx++;
-                             }
-                         }
+                        letterTilesInRow.forEach((tileElement, tileIndex) => {
+                             const delay = tileIndex * tileStaggerDelay;
+                             if (!isSilent) {
+                                 setTimeout(() => {
+                                     tileElement.classList.add('reveal');
+                                     setTimeout(() => { tileElement.classList.remove('hint-present', 'hint-incorrect'); tileElement.classList.add('locked', 'hint-correct'); }, flipDurationMs / 2);
+                                     tileElement.addEventListener('animationend', () => { tileElement.classList.remove('reveal'); animationsRemaining--; if (animationsRemaining === 0) resolveRow(); }, { once: true });
+                                 }, delay);
+                             } else { tileElement.classList.remove('hint-present', 'hint-incorrect'); tileElement.classList.add('locked', 'hint-correct'); animationsRemaining--; }
+                        });
+                        if(stemTile) {
+                            if (!isSilent) {
+                                const stemDelay = letterTilesInRow.length * tileStaggerDelay;
+                                setTimeout(() => {
+                                     stemTile.classList.add('reveal');
+                                     setTimeout(() => stemTile.classList.add('locked', 'hint-correct'), flipDurationMs / 2);
+                                     stemTile.addEventListener('animationend', () => { stemTile.classList.remove('reveal'); animationsRemaining--; if (animationsRemaining === 0) resolveRow(); }, { once: true });
+                                 }, stemDelay);
+                            } else { stemTile.classList.add('locked', 'hint-correct'); animationsRemaining--;}
+                        }
+                        if (animationsRemaining === 0 || isSilent) resolveRow(); // Resolve if silent or no tiles to animate
+                        state.lockedRows.add(i); if (currentDailyState && !currentDailyState.lockedRows.includes(i)) currentDailyState.lockedRows.push(i);
 
-                         if (guessPos !== -1 && tileHints[guessPos] !== 'hint-correct') {
-                             const guessLetter = guessLetters[guessPos];
-                             let foundOrangeMatch = false;
-                             for (let k = 0; k < 4; k++) {
-                                 if (k !== guessPos && guessLetter === solutionLetters[k] && !solutionLetterUsed[k]) {
-                                     tileHints[guessPos] = 'hint-present';
-                                     solutionLetterUsed[k] = true; 
-                                     foundOrangeMatch = true;
-                                     break;
-                                 }
-                             }
-                              if (!foundOrangeMatch) {
-                                  tileHints[guessPos] = 'hint-incorrect';
+                    } else { // Incorrect word logic
+                        let hasPresent = false; let hasIncorrect = false; const guessLetters=guess.split(''); const solutionLetters=sol.word.split(''); const tileHints=Array(4).fill(null); const solutionLetterUsed=Array(4).fill(false); solutionLetterUsed[sol.stemIndex]=true;
+                        emptyTiles.forEach((tile)=>{const el=tile.children[0];if(!el)return;const l=el.textContent;let idx=0,gp=-1;for(let k=0;k<4;k++){if(k!==sol.stemIndex){if(tile===emptyTiles[idx]){gp=k;break;}idx++;}}if(gp!==-1&&l===solutionLetters[gp]){tileHints[gp]='hint-correct';solutionLetterUsed[gp]=true;}});
+                        emptyTiles.forEach((tile)=>{const el=tile.children[0];if(!el)return;const l=el.textContent;let idx=0,gp=-1;for(let k=0;k<4;k++){if(k!==sol.stemIndex){if(tile===emptyTiles[idx]){gp=k;break;}idx++;}}if(gp!==-1&&tileHints[gp]!=='hint-correct'){let fo=false;for(let k=0;k<4;k++){if(k!==gp&&l===solutionLetters[k]&&!solutionLetterUsed[k]){tileHints[gp]='hint-present';solutionLetterUsed[k]=true;fo=true;hasPresent=true;break;}}if(!fo){tileHints[gp]='hint-incorrect';hasIncorrect=true;}}});
+
+                        letterTilesInRow.forEach((tileElement, tileIndex) => {
+                            let currentEmptyIdx = 0, hintPos = -1; const tileContainer = tileElement.parentElement; for(let k=0; k<4; k++) { if(k !== sol.stemIndex) { if (tileContainer === emptyTiles[currentEmptyIdx]) { hintPos = k; break; } currentEmptyIdx++; } } const hintClass = tileHints[hintPos] || 'hint-incorrect';
+                            const delay = tileIndex * tileStaggerDelay;
+
+                            if (!isSilent) {
+                                 setTimeout(() => {
+                                     tileElement.classList.add('reveal');
+                                     setTimeout(() => { tileElement.classList.remove('hint-correct', 'hint-present', 'hint-incorrect'); tileElement.classList.add(hintClass); }, flipDurationMs / 2);
+                                     tileElement.addEventListener('animationend', () => { tileElement.classList.remove('reveal'); animationsRemaining--; if (animationsRemaining === 0) resolveRow(); }, { once: true });
+                                 }, delay);
+                             } else { tileElement.classList.remove('hint-correct', 'hint-present', 'hint-incorrect'); tileElement.classList.add(hintClass); animationsRemaining--; }
+                        });
+                         if (animationsRemaining === 0 || isSilent) resolveRow(); // Resolve if silent or only stem
+
+                        if(hasPresent) currentCheckRowStatuses[i] = 'present'; else currentCheckRowStatuses[i] = 'incorrect';
+                    }
+                }); // End Promise constructor
+                animationCompletionPromises.push(rowAnimationPromise);
+            }); // End forEach rowToCheck
+
+             // --- Actions after ALL animations complete ---
+             const finalActions = () => {
+                 if (!isSilent && checkPerformedThisTurn) { // Only run if it was a user check
+                     state.firstTryBonus += currentFirstTryBonus; // Add any bonus earned this check
+
+                     // --- Push History AFTER evaluation ---
+                     if (currentDailyState) {
+                         if (!Array.isArray(currentDailyState.shareGridHistory)) currentDailyState.shareGridHistory = [];
+                         const checksUsedIndex = CHECKS_AVAILABLE - state.checksRemaining -1;
+                         if (checksUsedIndex >= 0 && currentDailyState.shareGridHistory.length === checksUsedIndex) {
+                              // Ensure currentCheckRowStatuses reflects the final state after check
+                              for (let rowIdx = 0; rowIdx < 7; rowIdx++) {
+                                  if (state.lockedRows.has(rowIdx)) {
+                                      currentCheckRowStatuses[rowIdx] = 'correct'; // Update status if row got locked this turn
+                                  } else if (!rowsToCheck.some(r => r.rowIndex === rowIdx)) {
+                                       // If row wasn't checked, inherit previous or set unchecked
+                                       const prevHistory = currentDailyState.shareGridHistory[checksUsedIndex - 1];
+                                       currentCheckRowStatuses[rowIdx] = prevHistory?.[rowIdx] || 'unchecked';
+                                  }
                               }
+                              currentDailyState.shareGridHistory.push([...currentCheckRowStatuses]); // Push a copy
+                              console.log("Pushed history for check:", checksUsedIndex + 1, currentCheckRowStatuses);
+                         } else {
+                              console.warn(`History push mismatch. Index: ${checksUsedIndex}, History Length: ${currentDailyState.shareGridHistory.length}`);
                          }
-                    });
-                    
-                    // Apply hints
-                    emptyTiles.forEach((tile, tileIndex) => {
-                         const sortedEmptyTiles = Array.from(document.querySelectorAll(`.grid-tile.empty[data-row='${i}']`)).sort((a,b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
-                         let hintPos = -1;
-                         let currentEmptyIdx = 0;
-                         for(let k=0; k<4; k++) {
-                             if(k !== sol.stemIndex) {
-                                 const potentialTile = sortedEmptyTiles[currentEmptyIdx];
-                                 if (tile === potentialTile) {
-                                     hintPos = k;
-                                     break;
-                                 }
-                                 currentEmptyIdx++;
-                             }
-                         }
-                         
-                         const hintClass = tileHints[hintPos] || 'hint-incorrect'; // Default to incorrect if no hint
-                         if (tile.children[0]) {
-                            tile.children[0].classList.add(hintClass);
-                         }
-                    });
-                }
-            }
+                     }
 
-            state.firstTryBonus += currentFirstTryBonus;
+                     saveDailyState(); // Save state AFTER hints applied and history updated
 
-            if (state.lockedRows.size === PUZZLE.stem.length) endGame(true);
-            else if (state.checksRemaining === 0) endGame(false);
-        }
-
-        function endGame(isWin) {
-            elements.checkBtn.disabled = true;
-            elements.replayBtn.textContent = "Play Again"; 
-            elements.modalTitle.textContent = isWin ? "Puzzle Solved!" : "Out of Checks!";
-
-            if (isWin) {
-                elements.message.textContent = "Congratulations!";
-                document.querySelectorAll('.grid-tile.stem-letter').forEach(t => t.classList.add('stem-win'));
-            } else {
-                elements.message.textContent = "Out of checks!";
-                let solutionText = "";
-                 for (let i = 0; i < PUZZLE.stem.length; i++) {
-                     solutionText += `${PUZZLE.stem[i]} -> ${PUZZLE.solution[i].word}\n`;
+                     // Check win/loss AFTER state save and history update
+                     if (state.lockedRows.size === PUZZLE.stem.length) {
+                         endGame(true, false);
+                     } else if (state.checksRemaining === 0) { // Check if 0 checks left NOW
+                         endGame(false, false);
+                     }
                  }
-                 const solutionTextDiv = document.getElementById('solution-text');
-                 if (solutionTextDiv) {
-                    solutionTextDiv.textContent = solutionText;
-                    elements.solutionDisplay.style.display = 'block';
-                 } else {
-                     console.error("solutionTextEl is not defined");
-                     elements.message.textContent = `Solution:\n${solutionText}`;
-                 }
-            }
-            setTimeout(() => showStats(isWin), 2000);
+             };
+
+             // Wait for the longest animation to complete before running final actions
+             if (animationCompletionPromises.length > 0 && !isSilent) {
+                 setTimeout(finalActions, maxRowAnimationTime + 50); // Add a small buffer
+             } else if (checkPerformedThisTurn) {
+                 // If check was performed but no rows animated (or silent check), run immediately
+                 finalActions();
+             }
+             // If silent check with animations, finalActions runs after timeout
+             // If silent check without animations, it should run immediately (or via initGame's endGame call)
         }
 
-        function animateValue(element, start, end, duration, isBonus = false) {
-           let startTimestamp = null;
-           const step = (timestamp) => {
-               if (!startTimestamp) startTimestamp = timestamp;
-               const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-               element.textContent = Math.floor(progress * (end - start) + start);
-               if (progress < 1) {
-                   window.requestAnimationFrame(step);
-               } else {
-                    element.textContent = end;
-                    if (isBonus) { element.textContent = `+${end}`; }
-               }
-           };
-            if (isBonus && start === 0) { element.textContent = `+${start}`; }
-            else { element.textContent = start; }
-           window.requestAnimationFrame(step);
-       }
 
-        function showStats(isWin) {
-            const timeTaken = Math.round((Date.now() - state.startTime) / 1000);
-            const minutes = Math.floor(timeTaken / 60);
-            const seconds = timeTaken % 60;
-            
-            const pointsPerCheck = 100; 
-            const checkBonus = state.checksRemaining * pointsPerCheck;
-            const timeScore = Math.max(0, 600 - timeTaken) * 10; 
-            const baseMoves = PUZZLE.stem.length * 3; 
-            const pointsPerMoveSaved = 30;
-            const moveBonus = Math.max(0, baseMoves * 2 - state.moveCount) * pointsPerMoveSaved;
+        function endGame(isWin, isSilent = false) { elements.checkBtn.disabled = true; elements.practiceBtn.textContent = "Practice"; elements.modalTitle.textContent = isWin ? "Puzzle Solved!" : "Out of Checks!"; if (currentDailyState && !currentDailyState.statsRecorded) { updatePersistentStats(isWin); currentDailyState.statsRecorded = true; } if (currentDailyState) { currentDailyState.isComplete = true; saveDailyState(); } if (isWin) { elements.message.textContent = "Congratulations!"; document.querySelectorAll('.grid-tile.stem-letter').forEach(t => t.classList.add('stem-win')); } else { elements.message.textContent = "Out of checks!"; let sT = ""; for (let i = 0; i < PUZZLE.stem.length; i++) sT += `${PUZZLE.stem[i]} -> ${PUZZLE.solution[i].word}\n`; if (elements.solutionTextEl) { elements.solutionTextEl.textContent = sT; elements.solutionDisplay.style.display = 'block'; } else elements.message.textContent = `Solution:\n${sT}`; } if (!isSilent) setTimeout(() => showEndGameStats(isWin), 1500); }
+        function animateValue(element, start, end, duration, isBonus = false) { let startTimestamp = null; const step = (timestamp) => { if (!startTimestamp) startTimestamp = timestamp; const progress = Math.min((timestamp - startTimestamp) / duration, 1); if (element) { element.textContent = Math.floor(progress * (end - start) + start); if (progress >= 1) { element.textContent = end; if (isBonus) { element.textContent = `+${end}`; } } else { window.requestAnimationFrame(step); } } }; if (element) { if (isBonus && start === 0) { element.textContent = `+${start}`; } else { element.textContent = start; } window.requestAnimationFrame(step); } }
+        function showEndGameStats(isWin) { const timeTaken = Math.round((Date.now() - state.startTime) / 1000); const minutes = Math.floor(timeTaken / 60); const seconds = timeTaken % 60; const pointsPerCheck = 100; const checkBonus = state.checksRemaining * pointsPerCheck; const timeScore = Math.max(0, 600 - timeTaken) * 10; const baseMoves = PUZZLE.stem.length * 3; const pointsPerMoveSaved = 30; const moveBonus = Math.max(0, baseMoves * 2 - state.moveCount) * pointsPerMoveSaved; const totalScore = isWin ? (timeScore + state.firstTryBonus + checkBonus + moveBonus) : 0; elements.finalTimeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`; elements.finalMovesEl.textContent = state.moveCount; animateValue(elements.firstTryBonusEl, 0, state.firstTryBonus, 500, true); animateValue(elements.checkBonusEl, 0, checkBonus, 500, true); animateValue(elements.moveBonusEl, 0, moveBonus, 500, true); animateValue(elements.finalScoreEl, 0, totalScore, 1000); elements.endGameModalOverlay.classList.add('visible'); }
 
-            const totalScore = timeScore + state.firstTryBonus + checkBonus + moveBonus;
-
-            elements.finalTimeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            elements.finalMovesEl.textContent = state.moveCount;
-            // Animate scores
-            animateValue(elements.firstTryBonusEl, 0, state.firstTryBonus, 500, true);
-            animateValue(elements.checkBonusEl, 0, checkBonus, 500, true);
-            animateValue(elements.moveBonusEl, 0, moveBonus, 500, true); 
-            animateValue(elements.finalScoreEl, 0, isWin ? totalScore : 0, 1000);
-
-            elements.modalOverlay.classList.add('visible'); // Use overlay
-        }
-
+        // --- UPDATED handleShare to use Emojis again ---
         function handleShare() {
-            const time = document.getElementById('final-time').textContent;
-            const moves = document.getElementById('final-moves').textContent;
-            const score = document.getElementById('final-score').textContent; 
-            const textToCopy = `I solved today's Trellis puzzle! 🌿\nTime: ${time} | Moves: ${moves} | Score: ${score}\n\nCan you solve it?`;
-            const textArea = document.createElement("textarea");
-            textArea.value = textToCopy;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            elements.shareBtn.textContent = 'Copied!';
-            setTimeout(() => elements.shareBtn.textContent = 'Share', 2000);
+            if (!currentDailyState || !currentDailyState.isComplete) { alert("Complete the daily puzzle!"); return; }
+            let time = elements.finalTimeEl.textContent; let moves = elements.finalMovesEl.textContent; let score = elements.finalScoreEl.textContent;
+            let checksUsed = CHECKS_AVAILABLE - state.checksRemaining;
+            // Recalculate checksUsed based on history length if available
+            if (currentDailyState.shareGridHistory && currentDailyState.shareGridHistory.length > 0) {
+                 checksUsed = currentDailyState.shareGridHistory.length;
+            }
+
+
+            if (time === '--:--') { const tT = Math.round((Date.now() - state.startTime) / 1000); time = `${Math.floor(tT / 60)}:${(tT % 60).toString().padStart(2, '0')}`; }
+            if (moves === '--') moves = state.moveCount.toString();
+            // Recalculate score if needed (e.g., share clicked before modal fully animated)
+            if (score === '0' && elements.finalScoreEl.textContent === '0' && state.lockedRows.size === PUZZLE.stem.length) { const tT = Math.round((Date.now() - state.startTime) / 1000); const cB = state.checksRemaining * 100; const tS = Math.max(0, 600 - tT) * 10; const bM = PUZZLE.stem.length * 3; const mB = Math.max(0, bM * 2 - state.moveCount) * 30; score = (tS + state.firstTryBonus + cB + mB).toString(); }
+
+            const title = `Trellis #${currentDailyState.seed} - ${checksUsed}/${CHECKS_AVAILABLE} Checks`;
+            let gridOutput = "";
+            // --- Switched back to Emojis ---
+            const statusToEmoji = { 'correct': '🟩', 'present': '🟧', 'incorrect': '🟥', 'unchecked': '⬜' };
+            if (Array.isArray(currentDailyState.shareGridHistory)) {
+                 currentDailyState.shareGridHistory.forEach(rowStatuses => {
+                     if (Array.isArray(rowStatuses)) {
+                         gridOutput += rowStatuses.map(status => statusToEmoji[status] || '⬜').join('') + '\n';
+                     }
+                 });
+            }
+             // Ensure final correct state line is added if win happened and history length matches checks used
+            if (state.lockedRows.size === PUZZLE.stem.length && currentDailyState.shareGridHistory.length === checksUsed) {
+                 // Check if the last line in history is already all green
+                 const lastLine = currentDailyState.shareGridHistory[currentDailyState.shareGridHistory.length - 1];
+                 if (!lastLine || !lastLine.every(s => s === 'correct')) {
+                    // This case should ideally not happen if history push is correct, but as a fallback:
+                     console.warn("Adding implicit final green line to share grid.");
+                    // gridOutput += Array(7).fill(statusToEmoji['correct']).join('') + '\n';
+                 }
+            }
+
+
+            const textToCopy = `${title}\n\n${gridOutput}\nTime: ${time} | Moves: ${moves} | Score: ${score}\n\nPlay Trellis: [Link]`;
+            copyUsingExecCommand(textToCopy);
         }
 
-        // Set random tagline on initial load
+        function copyUsingExecCommand(textToCopy) { const textArea = document.createElement("textarea"); textArea.value = textToCopy; textArea.style.position = 'fixed'; textArea.style.left = '-9999px'; document.body.appendChild(textArea); textArea.select(); try { document.execCommand('copy'); elements.shareBtn.textContent = 'Copied!'; setTimeout(() => elements.shareBtn.textContent = 'Share', 2000); } catch (err) { console.error('Copy failed: ', err); elements.shareBtn.textContent = 'Copy Failed'; setTimeout(() => elements.shareBtn.textContent = 'Share', 2000); } document.body.removeChild(textArea); }
+        function saveDailyState() { if (!currentDailyState) return; currentDailyState.moveCount = state.moveCount; currentDailyState.checksRemaining = state.checksRemaining; currentDailyState.lockedRows = Array.from(state.lockedRows); currentDailyState.firstCheckUsed = state.firstCheckUsed; if(!Array.isArray(currentDailyState.shareGridHistory)) currentDailyState.shareGridHistory = []; const board = []; document.querySelectorAll('.grid-tile.empty .letter-tile').forEach(t => board.push({ letter: t.textContent, location: 'grid', row: t.parentElement.dataset.row, col: t.parentElement.dataset.col })); document.querySelectorAll('.tray-tile .letter-tile').forEach(t => board.push({ letter: t.textContent, location: 'tray', index: t.parentElement.dataset.trayIndex })); currentDailyState.board = board; currentDailyState.isComplete = state.lockedRows.size === PUZZLE.stem.length || state.checksRemaining <= 0; // Check <= 0
+ currentDailyState.statsRecorded = currentDailyState.statsRecorded || false; try { localStorage.setItem(LS_KEYS.DAILY_STATE, JSON.stringify(currentDailyState)); } catch (e) { console.error("Save State Fail:", e); } }
+        function loadDailyState(seed) { try { const saved = localStorage.getItem(LS_KEYS.DAILY_STATE); if (saved) { const loadedState = JSON.parse(saved); if (loadedState.seed === seed) { if (!Array.isArray(loadedState.lockedRows)) loadedState.lockedRows = []; if (loadedState.statsRecorded === undefined) loadedState.statsRecorded = loadedState.isComplete; if (!Array.isArray(loadedState.shareGridHistory)) loadedState.shareGridHistory = []; return loadedState; } else { clearDailyState(loadedState.seed); return null; } } } catch (e) { console.error("Load State Fail:", e); localStorage.removeItem(LS_KEYS.DAILY_STATE); return null; } return null; }
+        function clearDailyState(seed) { try { const saved = localStorage.getItem(LS_KEYS.DAILY_STATE); if (saved) { const state = JSON.parse(saved); if (state.seed === seed) { localStorage.removeItem(LS_KEYS.DAILY_STATE); console.log("State cleared for " + seed); } } } catch(e) { console.error("Clear State Fail:", e); } }
+
+        loadPersistentStats();
         elements.tagline.textContent = TAGLINES[Math.floor(Math.random() * TAGLINES.length)];
-        
-        // initGame(); // Don't start game immediately, wait for play button
+
     });
     </script>
 </body>
