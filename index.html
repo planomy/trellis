@@ -689,6 +689,7 @@
                 const solution = [];
                 let possible = true;
                 let usedPatterns = {};
+                let usedWords = new Set(); // --- BUG FIX: Track used words per attempt ---
 
                 for (const stemLetter of stem) {
                     let possibleWords = ALL_WORDS.filter(word => word && word.length === 4 && word.includes(stemLetter));
@@ -705,6 +706,16 @@
                         possible = false; 
                         break; 
                     }
+                    
+                    // --- BUG FIX: Filter out already used words ---
+                    possibleWords = possibleWords.filter(word => !usedWords.has(word));
+                    if (possibleWords.length === 0) { 
+                        // console.warn(`Attempt ${attempts}: No 4-letter words left for '${stemLetter}' after checking *usedWords*.`);
+                        possible = false; 
+                        break; 
+                    }
+                    // --- END BUG FIX ---
+
 
                     const wordIndex = Math.floor(randomFunc() * possibleWords.length);
                     const word = possibleWords[wordIndex];
@@ -722,6 +733,8 @@
 
                     if (!usedPatterns[stemLetter]) usedPatterns[stemLetter] = [];
                     usedPatterns[stemLetter].push(stemIdxInWord);
+                    
+                    usedWords.add(word); // --- BUG FIX: Add chosen word to set ---
                     solution.push({ word, stemIndex: stemIdxInWord });
                 }
                 if (!possible) continue;
@@ -1222,7 +1235,7 @@
                  }
             }
 
-            const textToCopy = `${title}\n\n${gridOutput}\nTime: ${time} | Moves: ${moves} | Score: ${score}\n\nPlay Trellis: [Link]`;
+            const textToCopy = `${title}\n\n${gridOutput}\nTime: ${time} | Moves: ${moves} | Score: ${score}\n\nPlay Trellis: [https://planomy.github.io/trellis]`;
             copyUsingExecCommand(textToCopy);
         }
 
