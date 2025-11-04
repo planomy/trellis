@@ -604,7 +604,7 @@
         <!-- Settings Modal -->
         <div id="settings-modal-overlay" class="modal-overlay">
              <div id="settings-modal" class="modal-box">
-                 <button class="icon-btn modal-close-btn" id="close-settings-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                 <button class="icon-btn modal-close-btn" id="close-settings-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6"y1="6" x2="18" y2="18"></line></svg></button>
                 <h2>Settings</h2>
                 <div class="setting-row">
                     <p>Dark Mode</p>
@@ -874,7 +874,53 @@
 
         function loadPersistentStats() { try { const s = localStorage.getItem(LS_KEYS.DAILY_STATS); if (s) persistentStats = JSON.parse(s); } catch (e) { console.error("Load Stats Fail:", e); persistentStats = { gamesPlayed: 0, wins: 0, currentStreak: 0, maxStreak: 0, lastPlayedDateSeed: null }; } }
         function savePersistentStats() { try { localStorage.setItem(LS_KEYS.DAILY_STATS, JSON.stringify(persistentStats)); } catch (e) { console.error("Save Stats Fail:", e); } }
-        function updatePersistentStats(isWin) { const todaySeed = getDailySeed(); if (persistentStats.lastPlayedDateSeed !== todaySeed) { persistentStats.gamesPlayed++; if (isWin) { persistentStats.wins++; const y = new Date(); y.setDate(y.getDate() - 1); const ySeed = (y.getFullYear() * 10000) + (y.getMonth() * 100) + y.getDate(); if (persistentStats.lastPlayedDateSeed === ySeed) persistentStats.currentStreak++; else persistentStats.currentStreak = 1; persistentStats.maxStreak = Math.max(persistentStats.maxStreak, persistentStats.currentStreak); } else { persistentStats.currentStreak = 0; } persistentStats.lastPlayedDateSeed = todaySeed; savePersistentStats(); } }
+        
+        // --- UPDATED: updatePersistentStats to use getDailySeed() ---
+        function updatePersistentStats(isWin) { 
+            const todaySeed = getDailySeed(); // Use the scrambled seed
+            if (persistentStats.lastPlayedDateSeed !== todaySeed) { 
+                persistentStats.gamesPlayed++; 
+                if (isWin) { 
+                    persistentStats.wins++; 
+                    const y = new Date(); 
+                    y.setDate(y.getDate() - 1); 
+                    // Get yesterday's scrambled seed
+                    const ySeed = getDailySeed(y); // Pass yesterday's date object
+                    if (persistentStats.lastPlayedDateSeed === ySeed) {
+                        persistentStats.currentStreak++; 
+                    } else {
+                        persistentStats.currentStreak = 1; 
+                    }
+                    persistentStats.maxStreak = Math.max(persistentStats.maxStreak, persistentStats.currentStreak); 
+                } else { 
+                    persistentStats.currentStreak = 0; 
+                } 
+                persistentStats.lastPlayedDateSeed = todaySeed; 
+                savePersistentStats(); 
+            } 
+        }
+
+        // --- UPDATED: getDailySeed for stats checking ---
+        // Pass an optional date object
+        function getDailySeed(date = null) {
+            const now = date || new Date(); // Use provided date or today
+            const day = now.getDate();
+            const month = now.getMonth() + 1;
+            const year = now.getFullYear();
+            const str = `${year}-${month}-${day}`;
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = char + (hash << 6) + (hash << 16) - hash;
+            }
+            let positiveHash = hash & 0x7FFFFFFF;
+            if (!date) { // Only log if it's for today's seed
+                 console.log(`Today's Date: ${str}, Seed: ${positiveHash}`);
+            }
+            return positiveHash;
+        }
+
+
         function displayPersistentStats() { elements.statsPlayedEl.textContent = persistentStats.gamesPlayed; const wp = persistentStats.gamesPlayed > 0 ? Math.round((persistentStats.wins / persistentStats.gamesPlayed) * 100) : 0; elements.statsWinPctEl.textContent = wp; elements.statsStreakEl.textContent = persistentStats.currentStreak; elements.statsMaxStreakEl.textContent = persistentStats.maxStreak; }
 
         function initGame(isPracticeGame = false) {
@@ -893,6 +939,16 @@
                     console.log("Starting Daily Game...");
                     seed = getDailySeed();
                     randomFunc = simplePRNG(seed);
+                    
+                    // --- NEW: Add warm-up loop ---
+                    const dayOfMonth = new Date().getDate();
+                    const warmupCount = (dayOfMonth % 10) + 5; // Run 5-14 times based on day
+                    console.log(`Warming up PRNG ${warmupCount} times...`);
+                    for (let i = 0; i < warmupCount; i++) {
+                        randomFunc(); // "Burn" a random number
+                    }
+                    // --- End warm-up loop ---
+
                     PUZZLE = generatePuzzle(randomFunc);
                     if (!PUZZLE) throw new Error("Daily Puzzle generation failed."); // Check after generation
 
@@ -1235,7 +1291,7 @@
                  }
             }
 
-            const textToCopy = `${title}\n\n${gridOutput}\nTime: ${time} | Moves: ${moves} | Score: ${score}\n\nPlay Trellis: [https://planomy.github.io/trellis]`;
+            const textToCopy = `${title}\n\n${gridOutput}\nTime: ${time} | Moves: ${moves} | Score: ${score}\n\nPlay Trellis: [Link]`;
             copyUsingExecCommand(textToCopy);
         }
 
